@@ -93,16 +93,19 @@ python src/main.py --test
 python src/main.py --update
 ```
 
-### Docker Testing (using lukechilds/dockerpi)
+### Docker Compose Testing
 ```bash
-# Build the Docker image for Pi emulation
-docker build -t pi-home-dash .
+# Build and run the development environment
+docker-compose up pi-home-dash-dev
 
-# Run the virtualized Raspberry Pi
-docker run -it pi-home-dash
+# Run a single test
+docker-compose run --rm pi-home-dash python src/main.py --test
 
-# Test the e-ink display simulation
-python src/main.py --test
+# Run in continuous mode (production-like)
+docker-compose up pi-home-dash-continuous
+
+# Build images
+docker-compose build
 ```
 
 ## Project Structure
@@ -216,19 +219,88 @@ epd_device = "waveshare_epd.it8951"  # Device type for 10.3" display
 epd_mode = "bw"  # Display mode: "bw" or "gray16"
 ```
 
-## Testing with Docker
+## Testing with Docker Compose
 
-This project includes Docker support for testing without physical hardware:
+This project includes Docker Compose support for testing without physical hardware with multiple service configurations:
+
+### Available Services
+
+1. **pi-home-dash**: Basic service for single test runs
+2. **pi-home-dash-dev**: Development service with live code mounting and interactive mode
+3. **pi-home-dash-continuous**: Production-like service with automatic restarts
+
+### Usage Examples
 
 ```bash
-# Build test environment
+# Build all services
 docker-compose build
 
-# Run Pi emulation with display simulation
-docker-compose up
+# Run development environment with live code reloading
+docker-compose up pi-home-dash-dev
 
-# Test specific components
-docker run --rm pi-home-dash python src/main.py --test
+# Run a single test
+docker-compose run --rm pi-home-dash
+
+# Run continuous mode (production simulation)
+docker-compose up pi-home-dash-continuous
+
+# Run specific test commands
+docker-compose run --rm pi-home-dash python src/main.py --test
+docker-compose run --rm pi-home-dash python src/main.py --debug
+
+# View logs
+docker-compose logs pi-home-dash-continuous
+
+# Stop all services
+docker-compose down
+```
+
+### Service Configuration
+
+- **Volumes**: Persistent cache and temp directories, live code mounting in dev mode
+- **Environment Variables**: Configurable DEBUG mode and DAKBOARD_URL
+- **Restart Policies**: Automatic restart for continuous service
+- **Interactive Mode**: TTY and stdin for development debugging
+
+### Environment Configuration
+
+Create a `.env` file from the example to customize your setup:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit the configuration
+nano .env
+```
+
+Key environment variables:
+- `DAKBOARD_URL`: Your DAKboard screen URL
+- `DEBUG`: Enable debug logging (true/false)
+- `UPDATE_INTERVAL`: Update frequency in seconds (default: 300)
+- `DISPLAY`: X11 display for headless browser (default: :99)
+
+### Quick Start Commands
+
+```bash
+# Setup environment
+cp .env.example .env
+
+# Build and test
+docker-compose build
+docker-compose run --rm pi-home-dash
+
+# Development with live reloading
+docker-compose up pi-home-dash-dev
+
+# Production mode
+docker-compose up -d pi-home-dash-continuous
+
+# View logs
+docker-compose logs -f pi-home-dash-continuous
+
+# Stop services
+docker-compose down
 ```
 
 ## omni-epd Integration
