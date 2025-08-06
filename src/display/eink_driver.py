@@ -41,8 +41,22 @@ class EInkDriver:
         try:
             self.logger.info(f"Initializing omni-epd display: {self.settings.epd_device}")
             
-            # Load the display driver
-            self.epd = displayfactory.load_display_driver(self.settings.epd_device)
+            # Try to load the specified display driver first
+            try:
+                self.epd = displayfactory.load_display_driver(self.settings.epd_device)
+            except (EPDNotFoundError, Exception) as e:
+                self.logger.warning(f"Failed to load hardware display '{self.settings.epd_device}': {e}")
+                self.logger.info("Falling back to mock display for testing")
+                
+                # Fall back to mock display for testing
+                try:
+                    self.epd = displayfactory.load_display_driver("omni_epd.mock")
+                    if self.epd is None:
+                        raise EPDNotFoundError("Could not load mock display driver")
+                    self.logger.info("Mock display loaded successfully for testing")
+                except Exception as mock_e:
+                    self.logger.error(f"Failed to load mock display: {mock_e}")
+                    raise EPDNotFoundError(f"Could not load any display driver: {e}")
             
             if self.epd is None:
                 raise EPDNotFoundError(f"Could not load display driver: {self.settings.epd_device}")
@@ -102,7 +116,8 @@ class EInkDriver:
             processed_image = self._process_image(image)
             
             # Update the display
-            self.epd.display(processed_image)
+            if self.epd:
+                self.epd.display(processed_image)
             
             # Update refresh counter
             if need_full_refresh:
@@ -180,9 +195,9 @@ class EInkDriver:
                 return True
             
             # Use omni-epd's clear method if available
-            if hasattr(self.epd, 'clear'):
+            if self.epd and hasattr(self.epd, 'clear'):
                 self.epd.clear()
-            else:
+            elif self.epd:
                 # Create white image and display it
                 white_image = Image.new('1' if self.settings.epd_mode == 'bw' else 'L', 
                                       (self.settings.display_width, self.settings.display_height), 
@@ -205,7 +220,7 @@ class EInkDriver:
                 
             self.logger.info("Putting display to sleep")
             
-            if hasattr(self.epd, 'sleep'):
+            if self.epd and hasattr(self.epd, 'sleep'):
                 self.epd.sleep()
             else:
                 self.logger.warning("Sleep method not available for this display")

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Basic service for single test runs
   pi-home-dash:

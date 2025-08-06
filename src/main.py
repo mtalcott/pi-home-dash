@@ -36,13 +36,27 @@ class PiHomeDashboard:
     def _setup_logging(self):
         """Configure logging based on settings."""
         level = logging.DEBUG if self.settings.debug_mode else logging.INFO
+        
+        # Setup handlers
+        handlers = [logging.StreamHandler(sys.stdout)]
+        
+        # Try to add file handler, fall back gracefully if permissions denied
+        try:
+            handlers.append(logging.FileHandler('/var/log/pi-dashboard.log'))
+        except PermissionError:
+            # Fall back to local log file
+            try:
+                log_file = self.settings.project_root / 'logs' / 'pi-dashboard.log'
+                log_file.parent.mkdir(exist_ok=True)
+                handlers.append(logging.FileHandler(str(log_file)))
+            except Exception:
+                # If all else fails, just use console logging
+                pass
+        
         logging.basicConfig(
             level=level,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler('/var/log/pi-dashboard.log'),
-                logging.StreamHandler(sys.stdout)
-            ]
+            handlers=handlers
         )
     
     def update_display(self, force_full_refresh=False):

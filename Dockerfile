@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/
+COPY test_setup.py .
 COPY README.md .
 
 # Create necessary directories
