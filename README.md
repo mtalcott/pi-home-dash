@@ -1,0 +1,318 @@
+# Pi Home Dashboard - E-Ink Smart Calendar
+
+A DIY e-ink display for home with smart calendar functionality, similar to Skylight Smart Calendar or DAKboard, powered by a Raspberry Pi Zero 2 W.
+
+## Project Overview
+
+This project creates a home smart calendar using:
+- **Display**: Waveshare 10.3" e-Paper HAT (1872×1404, B&W)
+- **Computer**: Raspberry Pi Zero 2 W
+- **Features**: Calendar, weather, and to-do lists
+- **Frame**: White shadow box frame for clean presentation
+- **Testing**: Docker virtualization using lukechilds/dockerpi
+- **Display Library**: omni-epd for simplified e-ink display control
+
+## Hardware Components
+
+### Required Components
+- Waveshare 10.3" e-Paper HAT (IT8951 controller) - ~$200-203
+- Raspberry Pi Zero 2 W (with pre-soldered GPIO header) - ~$22
+- 5V/3A Micro USB Power Supply - ~$6.49
+- 16GB Class 10 MicroSD Card - ~$4.49
+- Mini HDMI to HDMI Adapter (for setup)
+- Micro USB OTG Adapter (for keyboard/mouse during setup)
+
+### Display Specifications
+- **Model**: Waveshare 10.3" e-Paper HAT
+- **Controller**: IT8951
+- **Outer dimensions**: 216.70 × 174.40mm
+- **Active display area**: 209.66 × 157.25mm
+- **Resolution**: 1872×1404 pixels
+- **Refresh time**: <1 second full refresh, partial refresh support
+- **Interface**: SPI/GPIO connection to Raspberry Pi
+- **omni-epd device**: `waveshare_epd.it8951`
+
+### Frame Options
+- 8×10" White Shadow Box Frame
+- Interior depth: 1.5" (38mm) - sufficient for Pi and components
+- Can stand in landscape orientation
+- Fully enclosed back panel
+
+## Software Architecture
+
+### Core Components
+1. **Dashboard Renderer**: Headless browser to render DAKboard or custom dashboard
+2. **Display Driver**: Uses omni-epd library for simplified e-ink display control
+3. **Scheduler**: Automated updates every few minutes
+4. **Configuration**: Centralized settings management
+
+### Display Library - omni-epd
+This project uses the [omni-epd](https://github.com/robweber/omni-epd) library for e-ink display control:
+- **Simplified API**: Abstract interface for multiple display types
+- **Built-in Processing**: Automatic image conversion and dithering
+- **Hardware Abstraction**: Works with or without physical hardware
+- **Testing Support**: Mock display for development
+
+### Data Sources
+- Calendar events (Google Calendar, Outlook, etc.)
+- Weather information
+- To-do lists
+- Custom widgets
+
+## GPIO SPI Connection
+
+### Pi Zero 2 W to Waveshare 10.3" HAT
+The omni-epd library handles the low-level SPI communication, but the physical connections are:
+
+| IT8951 Pin | Raspberry Pi GPIO | Function |
+|------------|-------------------|----------|
+| VCC        | Pin 2 or 4        | 5V Power |
+| GND        | Pin 6             | Ground   |
+| DIN (MOSI) | Pin 19            | SPI MOSI |
+| DOUT (MISO)| Pin 21            | SPI MISO |
+| CLK (SCK)  | Pin 23            | SPI Clock|
+| CS         | Pin 24            | Chip Select |
+| HRDY (BUSY)| Pin 18            | GPIO Input |
+| RST        | Pin 22            | GPIO Output |
+
+## Development Setup
+
+### Local Development
+```bash
+# Clone the repository
+git clone <repository-url>
+cd pi-home-dash
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Test the display (simulation mode if no hardware)
+python src/main.py --test
+
+# Run single update
+python src/main.py --update
+```
+
+### Docker Testing (using lukechilds/dockerpi)
+```bash
+# Build the Docker image for Pi emulation
+docker build -t pi-home-dash .
+
+# Run the virtualized Raspberry Pi
+docker run -it pi-home-dash
+
+# Test the e-ink display simulation
+python src/main.py --test
+```
+
+## Project Structure
+
+```
+pi-home-dash/
+├── src/
+│   ├── main.py              # Main application entry point
+│   ├── dashboard/
+│   │   └── renderer.py      # Dashboard rendering logic
+│   ├── display/
+│   │   ├── eink_driver.py   # omni-epd wrapper for display control
+│   │   └── image_processor.py # Additional image utilities (optional)
+│   ├── data/
+│   │   ├── calendar.py      # Calendar data fetching
+│   │   ├── weather.py       # Weather API integration
+│   │   └── todos.py         # To-do list management
+│   └── config/
+│       ├── settings.py      # Configuration management
+│       └── gpio_config.py   # GPIO pin definitions (for reference)
+├── test/
+│   ├── test_dashboard.py    # Dashboard rendering tests
+│   └── docker/
+│       └── Dockerfile.pi    # Raspberry Pi Docker image
+├── scripts/
+│   ├── setup.sh            # Initial setup script
+│   ├── install_deps.sh     # Dependency installation
+│   └── systemd/
+│       └── pi-dashboard.service # Systemd service file
+├── docs/
+│   ├── hardware_setup.md   # Hardware assembly guide
+│   ├── software_setup.md   # Software installation guide
+│   └── troubleshooting.md  # Common issues and solutions
+├── requirements.txt        # Python dependencies
+├── Dockerfile             # Docker configuration
+├── docker-compose.yml     # Docker Compose for testing
+└── README.md              # This file
+```
+
+## Installation Guide
+
+### 1. Hardware Assembly
+1. Connect the Waveshare 10.3" e-Paper HAT to Raspberry Pi Zero 2 W via GPIO
+2. Install Pi and display in shadow box frame
+3. Connect power supply and boot
+
+### 2. Software Setup
+```bash
+# Enable SPI interface
+sudo raspi-config
+# Interface Options -> SPI -> Enable
+
+# Install system dependencies
+sudo apt update
+sudo apt install python3-pip chromium-browser
+
+# Clone and setup project
+git clone <repository-url>
+cd pi-home-dash
+pip3 install -r requirements.txt
+
+# Test display functionality
+python3 src/main.py --test
+
+# Configure dashboard settings
+cp src/config/settings.py.example src/config/settings.py
+# Edit settings.py with your API keys and preferences
+
+# Install systemd service
+sudo cp scripts/systemd/pi-dashboard.service /etc/systemd/system/
+sudo systemctl enable pi-dashboard
+sudo systemctl start pi-dashboard
+```
+
+### 3. Configuration
+- Set up calendar API access (Google Calendar, Outlook, etc.)
+- Configure weather API (OpenWeatherMap, etc.)
+- Customize dashboard layout and refresh intervals
+- Test display functionality with `python3 src/main.py --test`
+
+## Usage
+
+### Command Line Options
+```bash
+# Test display with built-in test pattern
+python src/main.py --test
+
+# Force single display update
+python src/main.py --update
+
+# Run in continuous mode (default)
+python src/main.py --continuous
+
+# Debug mode with verbose logging
+python src/main.py --debug
+```
+
+### Automatic Operation
+Once installed, the dashboard will:
+1. Boot automatically with the Pi
+2. Load and render the dashboard content
+3. Update the e-ink display every 5 minutes
+4. Handle partial refreshes for time updates
+5. Perform full refresh periodically to clear ghosting
+
+### Display Configuration
+The display can be configured in `src/config/settings.py`:
+```python
+# omni-epd settings
+epd_device = "waveshare_epd.it8951"  # Device type for 10.3" display
+epd_mode = "bw"  # Display mode: "bw" or "gray16"
+```
+
+## Testing with Docker
+
+This project includes Docker support for testing without physical hardware:
+
+```bash
+# Build test environment
+docker-compose build
+
+# Run Pi emulation with display simulation
+docker-compose up
+
+# Test specific components
+docker run --rm pi-home-dash python src/main.py --test
+```
+
+## omni-epd Integration
+
+### Benefits
+- **Simplified Code**: No need for custom SPI communication
+- **Hardware Abstraction**: Works with or without physical display
+- **Built-in Features**: Automatic image processing, dithering, rotation
+- **Testing Support**: Mock display for development
+- **Multiple Display Support**: Easy to switch between display types
+
+### Configuration Options
+The omni-epd library supports configuration via `.ini` files:
+
+Create `omni-epd.ini` in the project root:
+```ini
+[EPD]
+type=waveshare_epd.it8951
+mode=bw
+
+[Display]
+rotate=0
+flip_horizontal=False
+flip_vertical=False
+
+[Image Enhancements]
+contrast=1
+brightness=1
+```
+
+## Troubleshooting
+
+### Common Issues
+- **Display not updating**: Check SPI connection and enable SPI in raspi-config
+- **omni-epd import error**: Install with `pip install omni-epd`
+- **Slow rendering**: Ensure sufficient power supply (5V/2.5A minimum)
+- **Ghosting on display**: Perform full refresh periodically
+- **Network issues**: Check Wi-Fi configuration and API credentials
+
+### Debug Commands
+```bash
+# Test omni-epd installation
+omni-epd-test -e waveshare_epd.it8951
+
+# Check SPI interface
+ls /dev/spi*
+
+# Test GPIO connections (if needed)
+gpio readall
+
+# Monitor system logs
+journalctl -u pi-dashboard -f
+
+# Run with debug logging
+python src/main.py --debug
+```
+
+### Display Testing
+```bash
+# Test with omni-epd utility
+omni-epd-test -e waveshare_epd.it8951
+
+# Test with project
+python src/main.py --test
+
+# List available display types
+omni-epd-test --list
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Test changes with Docker emulation
+4. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Acknowledgments
+
+- [omni-epd](https://github.com/robweber/omni-epd) for simplified e-ink display control
+- Waveshare for e-Paper display hardware and drivers
+- DAKboard for dashboard inspiration
+- lukechilds for Docker Pi virtualization
+- Raspberry Pi Foundation for the computing platform

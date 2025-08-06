@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Project directories
+cache/
+temp/
+logs/
+
+# Configuration with secrets
+.env
+config.ini
+
+# Test outputs
+display_*.png

@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  pi-home-dash:
+    build: .
+    container_name: pi-home-dash
+    volumes:
+      - ./temp:/app/temp
+      - ./cache:/app/cache
+    environment:
+      - DEBUG=true
+      - DAKBOARD_URL=https://dakboard.com/screen/your-screen-id
+      - DISPLAY=:99
+    command: python src/main.py --test
+
+  pi-home-dash-dev:
+    build: .
+    container_name: pi-home-dash-dev
+    volumes:
+      - ./src:/app/src
+      - ./temp:/app/temp
+      - ./cache:/app/cache
+    environment:
+      - DEBUG=true
+      - DISPLAY=:99
+    command: python src/main.py --debug --test
+    stdin_open: true
+    tty: true
+
+  pi-home-dash-continuous:
+    build: .
+    container_name: pi-home-dash-continuous
+    volumes:
+      - ./temp:/app/temp
+      - ./cache:/app/cache
+    environment:
+      - DEBUG=false
+      - DAKBOARD_URL=https://dakboard.com/screen/your-screen-id
+      - DISPLAY=:99
+    command: python src/main.py --continuous
+    restart: unless-stopped
