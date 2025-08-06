@@ -156,6 +156,14 @@ def main():
                        help='Enable debug logging')
     parser.add_argument('--continuous', action='store_true',
                        help='Run in continuous mode (default)')
+    parser.add_argument('--integration-test', action='store_true',
+                       help='Run integration test with HTML rendering and virtual display')
+    parser.add_argument('--test-duration', type=int, default=60,
+                       help='Integration test duration in seconds (default: 60)')
+    parser.add_argument('--test-interval', type=int, default=3,
+                       help='Integration test update interval in seconds (default: 3)')
+    parser.add_argument('--collect-artifacts', action='store_true',
+                       help='Collect and validate test artifacts during integration test')
     
     args = parser.parse_args()
     
@@ -168,7 +176,26 @@ def main():
         dashboard._setup_logging()
     
     try:
-        if args.test:
+        if args.integration_test:
+            # Integration test mode
+            from test.integration_test import run_integration_test
+            results = run_integration_test(
+                duration=args.test_duration,
+                interval=args.test_interval,
+                collect_artifacts=args.collect_artifacts
+            )
+            success = results.get('success', False)
+            if success:
+                print(f"\n✅ Integration test PASSED")
+                if 'validation' in results and results['validation']['overall_pass']:
+                    print("✅ All validation criteria met")
+                else:
+                    print("⚠️  Some validation criteria not met - check reports")
+            else:
+                print(f"\n❌ Integration test FAILED: {results.get('error', 'Unknown error')}")
+            sys.exit(0 if success else 1)
+            
+        elif args.test:
             # Test mode
             success = dashboard.test_display()
             sys.exit(0 if success else 1)
