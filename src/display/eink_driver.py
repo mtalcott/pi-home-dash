@@ -151,17 +151,17 @@ class EInkDriver:
                 )
             
             # Convert to appropriate mode based on display capabilities
+            # Note: For BW displays, we keep the image in grayscale mode 'L' 
+            # so that omni-epd can apply dithering before final conversion
             if self.settings.epd_mode == "gray16":
                 # Convert to grayscale for 16-level gray displays
                 if image.mode != 'L':
                     image = image.convert('L')
             else:
-                # Convert to 1-bit black and white for BW displays
-                if image.mode != '1':
-                    # First convert to grayscale, then to 1-bit
-                    if image.mode != 'L':
-                        image = image.convert('L')
-                    image = image.convert('1')
+                # For BW displays, ensure grayscale mode for dithering
+                if image.mode != 'L':
+                    image = image.convert('L')
+                # Let omni-epd handle the final conversion to 1-bit after dithering
             
             return image
             

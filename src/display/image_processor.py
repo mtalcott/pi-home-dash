@@ -1,11 +1,11 @@
 """
 Image processing utilities for e-ink display optimization.
-Handles image conversion, dithering, and test image generation.
+Handles image conversion and test image generation.
+Dithering is handled by omni-epd via configuration.
 """
 
 import logging
 from PIL import Image, ImageDraw, ImageFont
-import numpy as np
 
 
 class ImageProcessor:
@@ -42,9 +42,7 @@ class ImageProcessor:
             if self.settings.display_rotation != 0:
                 self.logger.info(f"Rotating image by {self.settings.display_rotation} degrees")
                 image = image.rotate(self.settings.display_rotation, expand=True)
-            
-            # Apply dithering for better e-ink display
-            image = self._apply_dithering(image)
+                
             
             self.logger.info("Image processing completed")
             return image
@@ -53,37 +51,6 @@ class ImageProcessor:
             self.logger.error(f"Error processing image: {e}")
             return None
     
-    def _apply_dithering(self, image):
-        """Apply Floyd-Steinberg dithering for better e-ink display."""
-        try:
-            self.logger.debug("Applying Floyd-Steinberg dithering")
-            
-            # Convert to numpy array for processing
-            img_array = np.array(image, dtype=np.float32)
-            height, width = img_array.shape
-            
-            # Floyd-Steinberg dithering
-            for y in range(height - 1):
-                for x in range(1, width - 1):
-                    old_pixel = img_array[y, x]
-                    new_pixel = 255 if old_pixel > 127 else 0
-                    img_array[y, x] = new_pixel
-                    
-                    error = old_pixel - new_pixel
-                    
-                    # Distribute error to neighboring pixels
-                    img_array[y, x + 1] += error * 7 / 16
-                    img_array[y + 1, x - 1] += error * 3 / 16
-                    img_array[y + 1, x] += error * 5 / 16
-                    img_array[y + 1, x + 1] += error * 1 / 16
-            
-            # Convert back to PIL Image
-            img_array = np.clip(img_array, 0, 255).astype(np.uint8)
-            return Image.fromarray(img_array, mode='L')
-            
-        except Exception as e:
-            self.logger.error(f"Error applying dithering: {e}")
-            return image  # Return original image if dithering fails
     
     def create_test_image(self):
         """Create a test image for display testing."""
