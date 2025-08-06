@@ -2,6 +2,10 @@ FROM python:3.9-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    git \
+    gcc \
+    python3-dev \
+    build-essential \
     chromium \
     xvfb \
     fonts-dejavu-core \
