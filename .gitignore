@@ -13,4 +13,4 @@ logs/
 config.ini
 
 # Test outputs
-display_*.png
+*.png
