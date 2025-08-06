@@ -260,7 +260,7 @@ class EInkDriver:
             # Create a simple test pattern
             test_image = Image.new('RGB', 
                                  (self.settings.display_width, self.settings.display_height), 
-                                 (255, 255, 255))
+                                 (255, 255, 255)) # type: ignore
             
             # Add some test content
             from PIL import ImageDraw, ImageFont
