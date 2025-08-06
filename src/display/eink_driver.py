@@ -73,9 +73,15 @@ class EInkDriver:
                     f"Display size mismatch: expected {self.settings.display_width}x{self.settings.display_height}, "
                     f"got {self.epd.width}x{self.epd.height}"
                 )
-                # Update settings to match actual display
-                self.settings.display_width = self.epd.width
-                self.settings.display_height = self.epd.height
+                
+                # Only update settings for hardware displays, not mock displays
+                # This ensures mock display uses the same dimensions as the 10.3" display
+                if self.settings.epd_device != "omni_epd.mock":
+                    self.logger.info("Updating settings to match hardware display dimensions")
+                    self.settings.display_width = self.epd.width
+                    self.settings.display_height = self.epd.height
+                else:
+                    self.logger.info("Using mock display - keeping 10.3\" display dimensions for consistency")
             
             # Initialize the display
             self.epd.prepare()
