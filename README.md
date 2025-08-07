@@ -54,10 +54,7 @@ This project uses the [omni-epd](https://github.com/robweber/omni-epd) library f
 - **Testing Support**: Mock display for development
 
 ### Data Sources
-- Calendar events (Google Calendar, Outlook, etc.)
-- Weather information
-- To-do lists
-- Custom widgets
+- DAKboard dashboard content (handles calendar, weather, todos, and custom widgets)
 
 ## GPIO SPI Connection
 
@@ -119,29 +116,24 @@ pi-home-dash/
 │   ├── display/
 │   │   ├── eink_driver.py   # omni-epd wrapper for display control
 │   │   └── image_processor.py # Additional image utilities (optional)
-│   ├── data/
-│   │   ├── calendar.py      # Calendar data fetching
-│   │   ├── weather.py       # Weather API integration
-│   │   └── todos.py         # To-do list management
-│   └── config/
-│       ├── settings.py      # Configuration management
-│       └── gpio_config.py   # GPIO pin definitions (for reference)
-├── test/
-│   ├── test_dashboard.py    # Dashboard rendering tests
-│   └── docker/
-│       └── Dockerfile.pi    # Raspberry Pi Docker image
-├── scripts/
-│   ├── setup.sh            # Initial setup script
-│   ├── install_deps.sh     # Dependency installation
-│   └── systemd/
-│       └── pi-dashboard.service # Systemd service file
-├── docs/
-│   ├── hardware_setup.md   # Hardware assembly guide
-│   ├── software_setup.md   # Software installation guide
-│   └── troubleshooting.md  # Common issues and solutions
+│   ├── config/
+│   │   └── settings.py      # Configuration management
+│   └── test/
+│       ├── __init__.py      # Test package initialization
+│       ├── integration_test.py # End-to-end integration tests
+│       └── test_dashboard.html # HTML test file for dashboard rendering
+├── test_setup.py           # Test setup and configuration
+├── test_results/           # Test output directory (screenshots, reports, logs)
+├── cache/                  # Cache directory for temporary files
+├── logs/                   # Application logs directory
+├── temp/                   # Temporary files directory
 ├── requirements.txt        # Python dependencies
+├── Pipfile                 # Pipenv dependency management
+├── Pipfile.lock           # Pipenv lock file
 ├── Dockerfile             # Docker configuration
 ├── docker-compose.yml     # Docker Compose for testing
+├── omni-epd.ini           # omni-epd display configuration
+├── .env.example           # Environment variables template
 └── README.md              # This file
 ```
 
@@ -172,7 +164,7 @@ python3 src/main.py --test
 
 # Configure dashboard settings
 cp src/config/settings.py.example src/config/settings.py
-# Edit settings.py with your API keys and preferences
+# Edit settings.py with your DAKboard URL and display preferences
 
 # Install systemd service
 sudo cp scripts/systemd/pi-dashboard.service /etc/systemd/system/
@@ -181,9 +173,8 @@ sudo systemctl start pi-dashboard
 ```
 
 ### 3. Configuration
-- Set up calendar API access (Google Calendar, Outlook, etc.)
-- Configure weather API (OpenWeatherMap, etc.)
-- Customize dashboard layout and refresh intervals
+- Configure your DAKboard URL in the settings
+- Customize display refresh intervals
 - Test display functionality with `python3 src/main.py --test`
 
 ## Usage
@@ -372,7 +363,7 @@ brightness=1
 - **omni-epd import error**: Install with `pip install omni-epd`
 - **Slow rendering**: Ensure sufficient power supply (5V/2.5A minimum)
 - **Ghosting on display**: Perform full refresh periodically
-- **Network issues**: Check Wi-Fi configuration and API credentials
+- **Network issues**: Check Wi-Fi configuration and DAKboard URL accessibility
 
 ### Debug Commands
 ```bash
