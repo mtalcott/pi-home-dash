@@ -92,17 +92,17 @@ python src/main.py --update
 
 ### Docker Compose Testing
 ```bash
-# Build and run the development environment
-docker-compose up pi-home-dash-dev
+# Build the image
+docker-compose build
 
 # Run a single test
 docker-compose run --rm pi-home-dash python src/main.py --test
 
-# Run in continuous mode (production-like)
-docker-compose up pi-home-dash-continuous
+# Run with debug logging
+docker-compose run --rm pi-home-dash python src/main.py --debug --test
 
-# Build images
-docker-compose build
+# Run in continuous mode (production-like)
+docker-compose run --rm pi-home-dash python src/main.py --continuous
 ```
 
 ## Project Structure
@@ -139,43 +139,51 @@ pi-home-dash/
 
 ## Installation Guide
 
-### 1. Hardware Assembly
+### Quick Setup (Recommended)
+For automated installation on a Raspberry Pi:
+
+```bash
+# One-command install
+curl -sSL https://raw.githubusercontent.com/mtalcott/pi-home-dash/main/install.sh | bash
+```
+
+This automatically:
+- Installs all system dependencies (including SPI setup)
+- Creates Python virtual environment
+- Installs Python packages from requirements.txt
+- Creates systemd service for auto-startup
+- Tests the installation
+
+### Manual Setup
+If you prefer manual installation:
+
+```bash
+# Clone repository
+git clone <repository-url> ~/pi-home-dash
+cd ~/pi-home-dash
+
+# Run setup script
+chmod +x setup_pi.sh
+./setup_pi.sh
+```
+
+### Hardware Assembly
 1. Connect the Waveshare 10.3" e-Paper HAT to Raspberry Pi Zero 2 W via GPIO
 2. Install Pi and display in shadow box frame
 3. Connect power supply and boot
 
-### 2. Software Setup
-```bash
-# Enable SPI interface
-sudo raspi-config
-# Interface Options -> SPI -> Enable
+### Post-Setup Configuration
+1. Edit `~/pi-home-dash/.env` to configure your DAKboard URL
+2. Reboot Pi to enable SPI: `sudo reboot`
+3. Start service: `sudo systemctl start pi-home-dash`
+4. Check status: `sudo systemctl status pi-home-dash`
 
-# Install system dependencies
-sudo apt update
-sudo apt install python3-pip chromium-browser
-
-# Clone and setup project
-git clone <repository-url>
-cd pi-home-dash
-pip3 install -r requirements.txt
-
-# Test display functionality
-python3 src/main.py --test
-
-# Configure dashboard settings
-cp src/config/settings.py.example src/config/settings.py
-# Edit settings.py with your DAKboard URL and display preferences
-
-# Install systemd service
-sudo cp scripts/systemd/pi-dashboard.service /etc/systemd/system/
-sudo systemctl enable pi-dashboard
-sudo systemctl start pi-dashboard
-```
-
-### 3. Configuration
-- Configure your DAKboard URL in the settings
-- Customize display refresh intervals
-- Test display functionality with `python3 src/main.py --test`
+### Setup Scripts
+The setup process uses shared components between Docker and Pi environments:
+- **`setup_pi.sh`**: Main Pi setup script
+- **`scripts/common_setup.sh`**: Shared setup functions
+- **`install.sh`**: Quick install wrapper
+- Same dependencies and directory structure as Dockerfile
 
 ## Usage
 
@@ -246,46 +254,51 @@ epd_mode = "bw"  # Display mode: "bw" or "gray16"
 
 ## Testing with Docker Compose
 
-This project includes Docker Compose support for testing without physical hardware with multiple service configurations:
-
-### Available Services
-
-1. **pi-home-dash**: Basic service for single test runs
-2. **pi-home-dash-dev**: Development service with live code mounting and interactive mode
-3. **pi-home-dash-continuous**: Production-like service with automatic restarts
+This project includes Docker Compose support for testing without physical hardware using a single consolidated service with different run commands:
 
 ### Usage Examples
 
 ```bash
-# Build all services
+# Build the image
 docker-compose build
 
-# Run development environment with live code reloading
-docker-compose up pi-home-dash-dev
-
-# Run a single test
-docker-compose run --rm pi-home-dash
-
-# Run continuous mode (production simulation)
-docker-compose up pi-home-dash-continuous
-
-# Run specific test commands
+# Run single test (default command)
 docker-compose run --rm pi-home-dash python src/main.py --test
-docker-compose run --rm pi-home-dash python src/main.py --debug
+
+# Run with debug logging
+docker-compose run --rm pi-home-dash python src/main.py --debug --test
+
+# Run integration test
+docker-compose run --rm pi-home-dash python src/main.py --integration-test
+
+# Run single update
+docker-compose run --rm pi-home-dash python src/main.py --update
+
+# Run in continuous mode (production-like)
+docker-compose run --rm pi-home-dash python src/main.py --continuous
+
+# Development mode with live code reloading (mount source code)
+docker-compose run --rm -v ./src:/app/src -v ./test_results:/app/test_results --tty --interactive pi-home-dash python src/main.py --debug --test
+
+# Run with custom environment variables
+DEBUG=false DAKBOARD_URL=https://dakboard.com/screen/your-id docker-compose run --rm pi-home-dash python src/main.py --test
+
+# Run background service with restart policy
+docker-compose up -d --restart unless-stopped pi-home-dash
 
 # View logs
-docker-compose logs pi-home-dash-continuous
+docker-compose logs -f pi-home-dash
 
-# Stop all services
+# Stop services
 docker-compose down
 ```
 
-### Service Configuration
+### Configuration
 
-- **Volumes**: Persistent cache and temp directories, live code mounting in dev mode
-- **Environment Variables**: Configurable DEBUG mode and DAKBOARD_URL
-- **Restart Policies**: Automatic restart for continuous service
-- **Interactive Mode**: TTY and stdin for development debugging
+- **Volumes**: Persistent cache, temp, and log directories
+- **Environment Variables**: Configurable via `.env` file or command line
+- **Shared Build**: Single Docker image used for all operations
+- **Flexible Commands**: Different functionality via command arguments
 
 ### Environment Configuration
 

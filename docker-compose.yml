@@ -1,92 +1,19 @@
 services:
-  # Basic service for single test runs
   pi-home-dash:
     build: .
-    container_name: pi-home-dash
     volumes:
       - ./temp:/app/temp
       - ./cache:/app/cache
       - ./logs:/var/log
     environment:
-      - DEBUG=true
-      - DAKBOARD_URL=${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
-      - DISPLAY=:99
-      - PYTHONPATH=/app/src
-    command: python src/main.py --test
-    networks:
-      - pi-dash-network
-
-  # Development service with live code mounting and interactive mode
-  pi-home-dash-dev:
-    build: .
-    container_name: pi-home-dash-dev
-    volumes:
-      - ./src:/app/src
-      - ./temp:/app/temp
-      - ./cache:/app/cache
-      - ./logs:/var/log
-      - ./test_results:/app/test_results
-      - ./requirements.txt:/app/requirements.txt
-    environment:
-      - DEBUG=true
-      - DAKBOARD_URL=${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
-      - DISPLAY=:99
-      - PYTHONPATH=/app/src
-    command: python src/main.py --debug --test
-    stdin_open: true
-    tty: true
-    networks:
-      - pi-dash-network
-
-  # Production-like service with automatic restarts
-  pi-home-dash-continuous:
-    build: .
-    container_name: pi-home-dash-continuous
-    volumes:
-      - ./temp:/app/temp
-      - ./cache:/app/cache
-      - ./logs:/var/log
-    environment:
-      - DEBUG=${DEBUG:-false}
-      - DAKBOARD_URL=${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
-      - DISPLAY=:99
-      - PYTHONPATH=/app/src
-      - UPDATE_INTERVAL=${UPDATE_INTERVAL:-300}
-    command: python src/main.py --continuous
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health', timeout=5)" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - pi-dash-network
-
-  # Service for running one-time commands
-  pi-home-dash-cli:
-    build: .
-    container_name: pi-home-dash-cli
-    volumes:
-      - ./src:/app/src
-      - ./temp:/app/temp
-      - ./cache:/app/cache
-      - ./logs:/var/log
-    environment:
-      - DEBUG=true
-      - DAKBOARD_URL=${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
-      - DISPLAY=:99
-      - PYTHONPATH=/app/src
-    profiles:
-      - cli
+      DEBUG: ${DEBUG:-true}
+      DAKBOARD_URL: ${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
+      DISPLAY: :99
+      PYTHONPATH: /app/src
+      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-300}
     networks:
       - pi-dash-network
 
 networks:
   pi-dash-network:
     driver: bridge
-
-volumes:
-  cache_data:
-  temp_data:
-  log_data:
