@@ -201,7 +201,41 @@ python src/main.py --continuous
 
 # Debug mode with verbose logging
 python src/main.py --debug
+
+# Run integration test (end-to-end pipeline test)
+python src/main.py --integration-test --test-duration 60 --test-interval 3
 ```
+
+### Integration Testing
+
+The project includes comprehensive end-to-end integration tests that validate the complete pipeline from HTML rendering to virtual e-ink display updates:
+
+```bash
+# Run integration test with default settings (60s duration, 3s intervals)
+docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test
+
+# Custom test duration and intervals
+docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test --test-duration 30 --test-interval 2
+
+# With artifact collection and validation
+docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test --collect-artifacts
+
+# Run test module directly
+docker-compose run --rm pi-home-dash-dev python src/test/integration_test.py --duration 15 --interval 3
+```
+
+**Integration Test Features:**
+- Tests complete HTML → Image → Display pipeline
+- Uses dynamic HTML content with real-time clock
+- Validates performance metrics (<2s per update cycle)
+- Generates screenshots, reports, and performance data
+- Success criteria validation (>95% success rate)
+- Runs entirely in Docker with virtual e-ink display
+
+**Test Artifacts:**
+- Screenshots: `test_results/screenshots/`
+- Performance reports: `test_results/reports/`
+- Detailed logs: `test_results/logs/`
 
 ### Automatic Operation
 Once installed, the dashboard will:

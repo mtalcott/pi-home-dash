@@ -4,6 +4,7 @@ Configuration settings for Pi Home Dashboard.
 
 import os
 from pathlib import Path
+from typing import Optional
 
 
 class Settings:
@@ -66,6 +67,9 @@ class Settings:
         # Omni-EPD settings
         self.epd_device = "waveshare_epd.it8951"  # Device type for 10.3" display
         self.epd_mode = "bw"  # Display mode: "bw" or "gray16"
+        
+        # Integration test settings
+        self.test_html_path: Optional[Path] = None  # Path to test HTML file for integration tests
         
     def validate(self):
         """Validate configuration settings."""

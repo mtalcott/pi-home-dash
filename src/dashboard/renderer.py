@@ -26,6 +26,8 @@ class DashboardRenderer:
                 return self._render_dakboard()
             elif self.settings.dashboard_type == "custom":
                 return self._render_custom()
+            elif self.settings.dashboard_type == "integration_test":
+                return self._render_integration_test()
             else:
                 raise ValueError(f"Unknown dashboard type: {self.settings.dashboard_type}")
                 
@@ -93,6 +95,76 @@ class DashboardRenderer:
             return None
         except Exception as e:
             self.logger.error(f"Error rendering DAKboard: {e}")
+            return None
+    
+    def _render_integration_test(self):
+        """Render integration test dashboard using local HTML file."""
+        try:
+            self.logger.info("Rendering integration test dashboard")
+            
+            # Check if test HTML file is configured and exists
+            if not hasattr(self.settings, 'test_html_path') or self.settings.test_html_path is None:
+                self.logger.error("Integration test HTML path not configured")
+                return None
+                
+            if not self.settings.test_html_path.exists():
+                self.logger.error(f"Integration test HTML file not found: {self.settings.test_html_path}")
+                return None
+            
+            # Convert file path to file:// URL for browser
+            file_url = f"file://{self.settings.test_html_path.absolute()}"
+            self.logger.info(f"Rendering integration test from: {file_url}")
+            
+            # Create temporary file for screenshot
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_path = temp_file.name
+            
+            # Use chromium to take screenshot (reuse existing browser setup)
+            cmd = [
+                'chromium',
+                '--headless',
+                '--disable-gpu',
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-extensions',
+                '--disable-plugins',
+                '--virtual-time-budget=5000',  # 5 second budget for faster test cycles
+                f'--window-size={self.settings.browser_width},{self.settings.browser_height}',
+                f'--screenshot={temp_path}',
+                file_url
+            ]
+            
+            self.logger.debug(f"Running command: {' '.join(cmd)}")
+            
+            # Run chromium command with shorter timeout for tests
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=min(self.settings.browser_timeout, 15)  # Max 15 seconds for tests
+            )
+            
+            if result.returncode != 0:
+                self.logger.error(f"Chromium failed: {result.stderr}")
+                return None
+            
+            # Load the screenshot
+            if Path(temp_path).exists():
+                image = Image.open(temp_path)
+                # Clean up temp file
+                Path(temp_path).unlink()
+                
+                self.logger.info("Integration test dashboard rendered successfully")
+                return image
+            else:
+                self.logger.error("Screenshot file not created")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            self.logger.error("Integration test rendering timed out")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error rendering integration test dashboard: {e}")
             return None
     
     def _render_custom(self):
