@@ -26,21 +26,6 @@ class Settings:
         self.dashboard_type = "dakboard"  # "dakboard" or "custom"
         self.dakboard_url = os.getenv("DAKBOARD_URL", "")
         
-        # Calendar settings
-        self.calendar_enabled = True
-        self.google_calendar_api_key = os.getenv("GOOGLE_CALENDAR_API_KEY", "")
-        self.google_calendar_id = os.getenv("GOOGLE_CALENDAR_ID", "")
-        
-        # Weather settings
-        self.weather_enabled = True
-        self.weather_api_key = os.getenv("OPENWEATHER_API_KEY", "")
-        self.weather_location = os.getenv("WEATHER_LOCATION", "")
-        self.weather_units = "metric"  # "metric", "imperial", "kelvin"
-        
-        # To-do settings
-        self.todos_enabled = True
-        self.todos_source = "local"  # "local", "todoist", "google_tasks"
-        
         # System settings
         self.debug_mode = os.getenv("DEBUG", "false").lower() == "true"
         self.log_level = "INFO"
@@ -77,12 +62,6 @@ class Settings:
         
         if self.dashboard_type == "dakboard" and not self.dakboard_url:
             errors.append("DAKboard URL is required when using DAKboard dashboard type")
-            
-        if self.weather_enabled and not self.weather_api_key:
-            errors.append("Weather API key is required when weather is enabled")
-            
-        if self.calendar_enabled and not self.google_calendar_api_key:
-            errors.append("Google Calendar API key is required when calendar is enabled")
             
         if errors:
             raise ValueError("Configuration validation failed:\n" + "\n".join(errors))
