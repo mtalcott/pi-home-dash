@@ -11,7 +11,7 @@ services:
       DAKBOARD_URL: ${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
       DISPLAY: :99
       PYTHONPATH: /app/src
-      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-300}
+      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-60}
     networks:
       - pi-dash-network
 

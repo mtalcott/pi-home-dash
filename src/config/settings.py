@@ -19,7 +19,7 @@ class Settings:
         self.display_rotation = 0  # 0, 90, 180, 270 degrees
         
         # Update intervals (in seconds)
-        self.update_interval = 300  # 5 minutes
+        self.update_interval = 60  # 1 minute
         self.full_refresh_interval = 3600  # 1 hour
         
         # Dashboard settings

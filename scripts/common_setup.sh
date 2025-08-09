@@ -87,7 +87,7 @@ get_docker_env_vars() {
 PYTHONPATH=/app/src
 DISPLAY=:99
 DEBUG=false
-UPDATE_INTERVAL=300
+UPDATE_INTERVAL=60
 EOF
 }
 
@@ -98,7 +98,7 @@ get_pi_env_vars() {
 PYTHONPATH=$home_dir/pi-home-dash/src
 DISPLAY=:0
 DEBUG=false
-UPDATE_INTERVAL=300
+UPDATE_INTERVAL=60
 DAKBOARD_URL=https://dakboard.com/screen/your-screen-id
 EOF
 }
