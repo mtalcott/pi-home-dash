@@ -50,7 +50,7 @@ class DashboardRenderer:
             
             # Use chromium to take screenshot
             cmd = [
-                'chromium-browser',
+                'chromium',
                 '--headless',
                 '--disable-gpu',
                 '--no-sandbox',
@@ -204,7 +204,7 @@ class DashboardRenderer:
             # Use xvfb-run with chromium
             cmd = [
                 'xvfb-run', '-a', '-s', '-screen 0 1920x1080x24',
-                'chromium-browser',
+                'chromium',
                 '--headless',
                 '--disable-gpu',
                 '--no-sandbox',
@@ -237,7 +237,7 @@ class DashboardRenderer:
         """Test if required browser tools are available."""
         try:
             # Test chromium
-            result = subprocess.run(['chromium-browser', '--version'], 
+            result = subprocess.run(['chromium', '--version'], 
                                   capture_output=True, text=True)
             if result.returncode == 0:
                 self.logger.info(f"Chromium available: {result.stdout.strip()}")
