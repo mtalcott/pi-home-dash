@@ -268,7 +268,7 @@ docker-compose run --rm pi-home-dash python src/main.py --test
 # Run with debug logging
 docker-compose run --rm pi-home-dash python src/main.py --debug --test
 
-# Run integration test
+# Run integration test (results saved to ./test_results/ on host)
 docker-compose run --rm pi-home-dash python src/main.py --integration-test
 
 # Run single update
@@ -278,7 +278,7 @@ docker-compose run --rm pi-home-dash python src/main.py --update
 docker-compose run --rm pi-home-dash python src/main.py --continuous
 
 # Development mode with live code reloading (mount source code)
-docker-compose run --rm -v ./src:/app/src -v ./test_results:/app/test_results --tty --interactive pi-home-dash python src/main.py --debug --test
+docker-compose run --rm -v ./src:/app/src --tty --interactive pi-home-dash python src/main.py --debug --test
 
 # Run with custom environment variables
 DEBUG=false DAKBOARD_URL=https://dakboard.com/screen/your-id docker-compose run --rm pi-home-dash python src/main.py --test

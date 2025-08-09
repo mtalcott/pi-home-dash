@@ -5,6 +5,7 @@ services:
       - ./temp:/app/temp
       - ./cache:/app/cache
       - ./logs:/var/log
+      - ./test_results:/app/test_results
     environment:
       DEBUG: ${DEBUG:-true}
       DAKBOARD_URL: ${DAKBOARD_URL:-https://dakboard.com/screen/your-screen-id}
