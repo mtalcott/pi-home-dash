@@ -80,14 +80,17 @@ The omni-epd library handles the low-level SPI communication, but the physical c
 git clone <repository-url>
 cd pi-home-dash
 
-# Install dependencies
+# Install dependencies locally
 pip install -r requirements.txt
 
+# Build the Docker image
+docker-compose build
+
 # Test the display (simulation mode if no hardware)
-python src/main.py --test
+docker-compose run --rm pi-home-dash python src/main.py --test
 
 # Run single update
-python src/main.py --update
+docker-compose run --rm pi-home-dash python src/main.py --update
 ```
 
 ### Docker Compose Testing
@@ -188,19 +191,19 @@ The setup process uses shared components between Docker and Pi environments:
 ### Command Line Options
 ```bash
 # Test display with built-in test pattern
-python src/main.py --test
+docker-compose run --rm pi-home-dash python src/main.py --test
 
 # Force single display update
-python src/main.py --update
+docker-compose run --rm pi-home-dash python src/main.py --update
 
 # Run in continuous mode (default)
-python src/main.py --continuous
+docker-compose run --rm pi-home-dash python src/main.py --continuous
 
 # Debug mode with verbose logging
-python src/main.py --debug
+docker-compose run --rm pi-home-dash python src/main.py --debug
 
 # Run integration test (end-to-end pipeline test)
-python src/main.py --integration-test --test-duration 60 --test-interval 3
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --test-duration 60 --test-interval 3
 ```
 
 ### Integration Testing
@@ -391,7 +394,7 @@ gpio readall
 journalctl -u pi-dashboard -f
 
 # Run with debug logging
-python src/main.py --debug
+docker-compose run --rm pi-home-dash python src/main.py --debug
 ```
 
 ### Display Testing
@@ -400,7 +403,7 @@ python src/main.py --debug
 omni-epd-test -e waveshare_epd.it8951
 
 # Test with project
-python src/main.py --test
+docker-compose run --rm pi-home-dash python src/main.py --test
 
 # List available display types
 omni-epd-test --list
