@@ -209,16 +209,16 @@ The project includes comprehensive end-to-end integration tests that validate th
 
 ```bash
 # Run integration test with default settings (60s duration, 3s intervals)
-docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test
+docker-compose run --rm pi-home-dash python src/main.py --integration-test
 
 # Custom test duration and intervals
-docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test --test-duration 30 --test-interval 2
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --test-duration 30 --test-interval 2
 
 # With artifact collection and validation
-docker-compose run --rm pi-home-dash-dev python src/main.py --integration-test --collect-artifacts
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --collect-artifacts
 
 # Run test module directly
-docker-compose run --rm pi-home-dash-dev python src/test/integration_test.py --duration 15 --interval 3
+docker-compose run --rm pi-home-dash python src/test/integration_test.py --duration 15 --interval 3
 ```
 
 **Integration Test Features:**
@@ -327,13 +327,13 @@ docker-compose build
 docker-compose run --rm pi-home-dash
 
 # Development with live reloading
-docker-compose up pi-home-dash-dev
+docker-compose up pi-home-dash
 
 # Production mode
-docker-compose up -d pi-home-dash-continuous
+docker-compose up -d pi-home-dash
 
 # View logs
-docker-compose logs -f pi-home-dash-continuous
+docker-compose logs -f pi-home-dash
 
 # Stop services
 docker-compose down
