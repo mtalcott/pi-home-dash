@@ -281,8 +281,8 @@ docker-compose run --rm pi-home-dash python src/main.py --continuous
 # Development mode with live code reloading (mount source code)
 docker-compose run --rm -v ./src:/app/src --tty --interactive pi-home-dash python src/main.py --debug --test
 
-# Run with custom environment variables
-DEBUG=false DAKBOARD_URL=https://dakboard.com/screen/your-id docker-compose run --rm pi-home-dash python src/main.py --test
+# Run in continuous mode (production-like) with custom environment variables
+DEBUG=false DAKBOARD_URL=https://dakboard.com/display/uuid/DAKBOARD_UUID docker-compose run --rm pi-home-dash python src/main.py --continuous
 
 # Run background service with restart policy
 docker-compose up -d --restart unless-stopped pi-home-dash
