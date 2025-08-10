@@ -43,8 +43,8 @@ class Settings:
     # Centralized defaults (used-only envs will override these)
     DEFAULTS = {
         # Display settings
-        "display_width": 1872,
-        "display_height": 1404,
+        "display_width": 400,
+        "display_height": 200,
         "display_rotation": 0,  # 0, 90, 180, 270 degrees
 
         # Update intervals (in seconds)

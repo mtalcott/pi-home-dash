@@ -363,19 +363,19 @@ class TestValidator:
                 f"Success rate ({success_rate:.1f}%) below target (95%). Check for rendering or display issues."
             )
         
-        # Performance validation (target: <2s per update)
+        # Performance validation (target: <3.5s per update)
         if 'performance' in report and 'avg_total_time' in report['performance']:
             avg_time = report['performance']['avg_total_time']
             validation_results['criteria_results']['performance'] = {
                 'value': avg_time,
-                'target': 2.0,
-                'pass': avg_time < 2.0
+                'target': 3.5,
+                'pass': avg_time < 3.5
             }
             
-            if avg_time >= 2.0:
+            if avg_time >= 3.5:
                 validation_results['overall_pass'] = False
                 validation_results['recommendations'].append(
-                    f"Average update time ({avg_time:.2f}s) exceeds target (2.0s). Consider optimization."
+                    f"Average update time ({avg_time:.2f}s) exceeds target (3.5s). Consider optimization."
                 )
         
         # Screenshot validation

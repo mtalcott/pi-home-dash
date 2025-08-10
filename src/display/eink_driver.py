@@ -74,14 +74,9 @@ class EInkDriver:
                     f"got {self.epd.width}x{self.epd.height}"
                 )
                 
-                # Only update settings for hardware displays, not mock displays
-                # This ensures mock display uses the same dimensions as the 10.3" display
-                if self.settings.epd_device != "omni_epd.mock":
-                    self.logger.info("Updating settings to match hardware display dimensions")
-                    self.settings.display_width = self.epd.width
-                    self.settings.display_height = self.epd.height
-                else:
-                    self.logger.info("Using mock display - keeping 10.3\" display dimensions for consistency")
+                self.logger.info("Updating settings to match hardware display dimensions")
+                self.settings.display_width = self.epd.width
+                self.settings.display_height = self.epd.height
             
             # Initialize the display
             self.epd.prepare()
@@ -174,10 +169,6 @@ class EInkDriver:
         refresh_type = "full" if full_refresh else "partial"
         self.logger.info(f"SIMULATION: Display update ({refresh_type} refresh)")
         self.logger.info(f"SIMULATION: Image size: {image.size}, mode: {image.mode}")
-        
-        # Simulate update time
-        update_time = 2.0 if full_refresh else 0.5
-        time.sleep(update_time)
         
         # Save image for debugging
         try:
