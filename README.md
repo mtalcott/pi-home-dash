@@ -128,8 +128,6 @@ pi-home-dash/
 ├── logs/                   # Application logs directory
 ├── temp/                   # Temporary files directory
 ├── requirements.txt        # Python dependencies
-├── Pipfile                 # Pipenv dependency management
-├── Pipfile.lock           # Pipenv lock file
 ├── Dockerfile             # Docker configuration
 ├── docker-compose.yml     # Docker Compose for testing
 ├── omni-epd.ini           # omni-epd display configuration

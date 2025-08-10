@@ -13,9 +13,9 @@ WORKDIR /app
 # Create common directory structure using shared function
 RUN /tmp/common_setup.sh create_common_directories /app
 
-# Copy requirements and install Python dependencies using shared function
+# Copy requirements file and install dependencies
 COPY requirements.txt .
-RUN /tmp/common_setup.sh setup_python_common requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/

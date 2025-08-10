@@ -108,11 +108,8 @@ setup_python_env() {
     # Upgrade pip
     pip install --upgrade pip
     
-    # Source the common setup functions
-    source "$HOME/pi-home-dash/scripts/common_setup.sh"
-    
-    # Use shared function for Python dependencies
-    if setup_python_common requirements.txt; then
+    # Install dependencies from requirements.txt
+    if pip install --no-cache-dir -r requirements.txt; then
         log_success "Python environment setup complete"
     else
         log_error "Python environment setup failed"

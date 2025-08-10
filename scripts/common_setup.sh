@@ -126,9 +126,7 @@ validate_common_setup() {
     
     # Check if required Python packages are installed
     local required_packages=(
-        "selenium"
-        "pillow" 
-        "requests"
+        "pillow"
     )
     
     for package in "${required_packages[@]}"; do
