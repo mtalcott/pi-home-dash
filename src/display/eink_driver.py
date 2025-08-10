@@ -259,15 +259,15 @@ class EInkDriver:
             
             # Try to load a font, fall back to default
             try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
             except (OSError, IOError):
                 font = ImageFont.load_default()
             
             # Draw test text
-            draw.text((50, 50), "Pi Home Dashboard", fill='black', font=font)
-            draw.text((50, 120), f"Display Test - {self.settings.epd_device}", fill='black', font=font)
-            draw.text((50, 190), f"Size: {self.settings.display_width}x{self.settings.display_height}", fill='black', font=font)
-            draw.text((50, 260), f"Mode: {self.settings.epd_mode}", fill='black', font=font)
+            draw.text((20, 20), "Pi Home Dashboard", fill='black', font=font)
+            draw.text((20, 60), f"Display Test - {self.settings.epd_device}", fill='black', font=font)
+            draw.text((20, 100), f"Size: {self.settings.display_width}x{self.settings.display_height}", fill='black', font=font)
+            draw.text((20, 140), f"Mode: {self.settings.epd_mode}", fill='black', font=font)
             
             # Draw a border
             draw.rectangle([10, 10, self.settings.display_width-10, self.settings.display_height-10], 
