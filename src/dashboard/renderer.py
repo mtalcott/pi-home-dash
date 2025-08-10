@@ -18,6 +18,7 @@ class DashboardRenderer:
         """Initialize the dashboard renderer."""
         self.settings = settings
         self.logger = logging.getLogger(__name__)
+        self.browser_bin = "chromium"
         
     def render(self):
         """Render the dashboard and return a PIL Image."""
@@ -50,14 +51,13 @@ class DashboardRenderer:
             
             # Use chromium to take screenshot
             cmd = [
-                'chromium',
-                '--headless',
+                self.browser_bin,
+                '--headless=new',
                 '--disable-gpu',
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-extensions',
                 '--disable-plugins',
-                '--disable-images',  # Disable image loading for faster rendering
                 '--virtual-time-budget=10000',  # 10 second budget
                 f'--window-size={self.settings.browser_width},{self.settings.browser_height}',
                 f'--screenshot={temp_path}',
@@ -121,8 +121,8 @@ class DashboardRenderer:
             
             # Use chromium to take screenshot (reuse existing browser setup)
             cmd = [
-                'chromium',
-                '--headless',
+                self.browser_bin,
+                '--headless=new',
                 '--disable-gpu',
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
@@ -204,8 +204,8 @@ class DashboardRenderer:
             # Use xvfb-run with chromium
             cmd = [
                 'xvfb-run', '-a', '-s', '-screen 0 1920x1080x24',
-                'chromium',
-                '--headless',
+                self.browser_bin,
+                '--headless=new',
                 '--disable-gpu',
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
@@ -237,17 +237,17 @@ class DashboardRenderer:
         """Test if required browser tools are available."""
         try:
             # Test chromium
-            result = subprocess.run(['chromium', '--version'], 
+            result = subprocess.run([self.browser_bin, '--version'],
                                   capture_output=True, text=True)
             if result.returncode == 0:
                 self.logger.info(f"Chromium available: {result.stdout.strip()}")
                 return True
             else:
-                self.logger.error("Chromium not available")
+                self.logger.error(f"Chromium not available. Failed with: {result.stderr}")
                 return False
                 
         except FileNotFoundError:
-            self.logger.error("Chromium browser not found")
+            self.logger.error(f"Chromium browser not found at: {self.browser_bin}")
             return False
         except Exception as e:
             self.logger.error(f"Error testing browser: {e}")
