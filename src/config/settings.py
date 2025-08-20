@@ -131,6 +131,7 @@ class Settings:
         # Update cadence
         self.update_interval = _get_env_int("UPDATE_INTERVAL", self.update_interval)
         self.full_refresh_interval = _get_env_int("FULL_REFRESH_INTERVAL", self.full_refresh_interval)
+        self.browser_timeout = _get_env_int("BROWSER_TIMEOUT", self.browser_timeout)
 
         # Display geometry
         self.display_width = _get_env_int("DISPLAY_WIDTH", self.display_width)

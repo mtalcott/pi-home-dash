@@ -168,8 +168,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/pi-home-dash
-Environment=PYTHONPATH=$HOME/pi-home-dash/src
-Environment=DISPLAY=:0
+EnvironmentFile=$HOME/mackt/pi-home-dash/.env
 ExecStart=$HOME/pi-home-dash/venv/bin/python src/main.py --continuous
 Restart=always
 RestartSec=10
