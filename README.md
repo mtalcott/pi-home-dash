@@ -145,7 +145,7 @@ For automated installation on a Raspberry Pi:
 
 ```bash
 # One-command install
-curl -sSL https://raw.githubusercontent.com/mtalcott/pi-home-dash/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/mtalcott/pi-home-dash/master/install.sh | bash
 ```
 
 This automatically:
