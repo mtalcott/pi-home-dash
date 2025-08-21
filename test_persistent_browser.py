@@ -19,8 +19,15 @@ def test_persistent_browser():
     """Test the persistent browser functionality."""
     print("Testing persistent browser functionality...")
     
-    # Create settings and renderer
+    # Create settings and load .env file
     settings = Settings()
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        settings.load_from_file(env_file)
+        print(f"✅ Loaded configuration from {env_file}")
+    else:
+        print(f"⚠️  No .env file found at {env_file}")
+    
     renderer = DashboardRenderer(settings)
     
     # Check if we have a DAKboard URL configured
@@ -114,7 +121,15 @@ def test_fallback_rendering():
     print("\n" + "="*50)
     print("Testing fallback rendering...")
     
+    # Create settings and load .env file
     settings = Settings()
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        settings.load_from_file(env_file)
+        print(f"✅ Loaded configuration from {env_file}")
+    else:
+        print(f"⚠️  No .env file found at {env_file}")
+    
     renderer = DashboardRenderer(settings)
     
     if not settings.dakboard_url:
