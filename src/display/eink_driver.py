@@ -41,22 +41,12 @@ class EInkDriver:
         try:
             self.logger.info(f"Initializing omni-epd display: {self.settings.epd_device}")
             
-            # Try to load the specified display driver first
+            # Load the display driver specified in settings (no implicit fallback)
             try:
                 self.epd = displayfactory.load_display_driver(self.settings.epd_device)
             except (EPDNotFoundError, Exception) as e:
-                self.logger.warning(f"Failed to load hardware display '{self.settings.epd_device}': {e}")
-                self.logger.info("Falling back to mock display for testing")
-                
-                # Fall back to mock display for testing
-                try:
-                    self.epd = displayfactory.load_display_driver("omni_epd.mock")
-                    if self.epd is None:
-                        raise EPDNotFoundError("Could not load mock display driver")
-                    self.logger.info("Mock display loaded successfully for testing")
-                except Exception as mock_e:
-                    self.logger.error(f"Failed to load mock display: {mock_e}")
-                    raise EPDNotFoundError(f"Could not load any display driver: {e}")
+                self.logger.error(f"Failed to load display '{self.settings.epd_device}': {e}")
+                raise
             
             if self.epd is None:
                 raise EPDNotFoundError(f"Could not load display driver: {self.settings.epd_device}")

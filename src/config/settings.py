@@ -68,7 +68,7 @@ class Settings:
         "eink_ghosting_prevention": True,
 
         # Omni-EPD settings
-        "epd_device": "waveshare_epd.it8951",  # Device type for 10.3" display
+        "epd_device": "omni_epd.mock",  # Default to mock for dev; override on Pi via OMNI_EPD_DISPLAY
         "epd_mode": "bw",  # Display mode: "bw" or "gray16"
     }
 
@@ -136,6 +136,9 @@ class Settings:
         # Display geometry
         self.display_width = _get_env_int("DISPLAY_WIDTH", self.display_width)
         self.display_height = _get_env_int("DISPLAY_HEIGHT", self.display_height)
+
+        # Omni-EPD device selection (mock by default; override via OMNI_EPD_DISPLAY)
+        self.epd_device = _get_env_str("OMNI_EPD_DISPLAY", self.epd_device)
 
     def validate(self):
         """Validate configuration settings."""

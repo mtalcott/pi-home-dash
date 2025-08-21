@@ -133,6 +133,7 @@ setup_environment() {
 PYTHONPATH=$HOME/pi-home-dash/src
 DISPLAY=:0
 DEBUG=false
+OMNI_EPD_DISPLAY=waveshare_epd.it8951
 UPDATE_INTERVAL=60
 DAKBOARD_URL=https://dakboard.com/screen/your-screen-id
 EOF
@@ -168,7 +169,8 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/pi-home-dash
-EnvironmentFile=$HOME/mackt/pi-home-dash/.env
+Environment=OMNI_EPD_DISPLAY=waveshare_epd.it8951
+EnvironmentFile=$HOME/pi-home-dash/.env
 ExecStart=$HOME/pi-home-dash/venv/bin/python src/main.py --continuous
 Restart=always
 RestartSec=10
