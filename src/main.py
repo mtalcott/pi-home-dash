@@ -29,6 +29,11 @@ class PiHomeDashboard:
         self.renderer = DashboardRenderer(self.settings)
         self.display = EInkDriver(self.settings)
         
+        # Persistent browser state
+        self.persistent_browser_enabled = False
+        self.browser_refresh_count = 0
+        self.max_renders_before_refresh = 1440  # Refresh browser every day (1440 minutes)
+        
         # Setup logging
         self._setup_logging()
         self.logger = logging.getLogger(__name__)
@@ -64,9 +69,49 @@ class PiHomeDashboard:
         try:
             self.logger.info("Starting display update...")
             
+            # Initialize persistent browser if needed for DAKboard
+            if (self.settings.dashboard_type == "dakboard" and 
+                not self.persistent_browser_enabled and 
+                self.settings.dakboard_url):
+                
+                self.logger.info("Initializing persistent browser for DAKboard...")
+                success = self.renderer.start_persistent_browser(self.settings.dakboard_url)
+                if success:
+                    self.persistent_browser_enabled = True
+                    self.browser_refresh_count = 0
+                    self.logger.info("Persistent browser initialized successfully")
+                else:
+                    self.logger.warning("Failed to initialize persistent browser, falling back to standard rendering")
+            
             # Render dashboard content
             self.logger.info("Rendering dashboard content...")
-            dashboard_image = self.renderer.render()
+            
+            # Use persistent browser for DAKboard if available
+            if (self.settings.dashboard_type == "dakboard" and 
+                self.persistent_browser_enabled):
+                
+                # Check if we need to refresh the browser page
+                if self.browser_refresh_count >= self.max_renders_before_refresh:
+                    self.logger.info("Refreshing persistent browser page...")
+                    refresh_success = self.renderer.refresh_persistent_browser()
+                    if refresh_success:
+                        self.browser_refresh_count = 0
+                        self.logger.info("Browser page refreshed successfully")
+                    else:
+                        self.logger.warning("Failed to refresh browser page")
+                
+                # Take screenshot using persistent browser
+                dashboard_image = self.renderer.render_persistent_screenshot()
+                self.browser_refresh_count += 1
+                
+                # Fall back to standard rendering if persistent browser fails
+                if dashboard_image is None:
+                    self.logger.warning("Persistent browser screenshot failed, falling back to standard rendering")
+                    self.persistent_browser_enabled = False
+                    dashboard_image = self.renderer.render()
+            else:
+                # Use standard rendering for non-DAKboard or when persistent browser is not available
+                dashboard_image = self.renderer.render()
             
             if dashboard_image is None:
                 self.logger.error("Failed to render dashboard content")
@@ -139,6 +184,13 @@ class PiHomeDashboard:
     def cleanup(self):
         """Clean up resources."""
         try:
+            # Clean up persistent browser if running
+            if self.persistent_browser_enabled:
+                self.logger.info("Cleaning up persistent browser...")
+                self.renderer.cleanup_persistent_browser()
+                self.persistent_browser_enabled = False
+            
+            # Clean up display
             self.display.cleanup()
             self.logger.info("Cleanup completed")
         except Exception as e:

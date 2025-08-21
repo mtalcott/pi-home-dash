@@ -56,6 +56,28 @@ This project uses the [omni-epd](https://github.com/robweber/omni-epd) library f
 ### Data Sources
 - DAKboard dashboard content (handles calendar, weather, todos, and custom widgets)
 
+### Performance Optimization - Persistent Browser
+
+The dashboard includes a persistent browser optimization that dramatically improves rendering speed:
+
+- **Original Method**: Spawned new Chromium process for each render (~3 minutes on Pi Zero 2 W)
+- **Optimized Method**: Keeps Chromium instance running and takes screenshots (~2-5 seconds)
+
+**Key Features:**
+- Automatic initialization for DAKboard rendering
+- Memory-optimized Chrome flags for Pi Zero 2 W
+- Daily browser refresh to prevent stale content
+- Fallback to standard rendering if persistent browser fails
+- E-ink display optimizations (disabled animations, videos)
+
+**Performance Comparison:**
+| Method | Initial Load | Subsequent Renders | Memory Usage |
+|--------|-------------|-------------------|--------------|
+| Original (subprocess) | ~3 minutes | ~3 minutes | Low (temporary) |
+| Persistent Browser | ~30-60 seconds | ~2-5 seconds | Higher (persistent) |
+
+The persistent browser is automatically enabled for DAKboard rendering and uses Playwright.
+
 ## GPIO SPI Connection
 
 ### Pi Zero 2 W to Waveshare 10.3" HAT
@@ -407,6 +429,33 @@ docker-compose run --rm pi-home-dash python src/main.py --test
 
 # List available display types
 omni-epd-test --list
+```
+
+### Persistent Browser Testing
+```bash
+# Test persistent browser functionality
+python test_persistent_browser.py
+
+# Test individual components in Python
+python -c "
+from src.config.settings import Settings
+from src.dashboard.renderer import DashboardRenderer
+
+settings = Settings()
+renderer = DashboardRenderer(settings)
+
+# Start persistent browser
+success = renderer.start_persistent_browser(settings.dakboard_url)
+print(f'Browser started: {success}')
+
+# Take screenshot
+if success:
+    image = renderer.render_persistent_screenshot()
+    print(f'Screenshot taken: {image is not None}')
+    
+# Clean up
+renderer.cleanup_persistent_browser()
+"
 ```
 
 ## Contributing
