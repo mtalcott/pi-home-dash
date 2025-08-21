@@ -3,7 +3,8 @@
 # Pi Home Dashboard Hardware Verification Script
 # Run this script on the Raspberry Pi to verify SPI and omni-epd setup
 
-set -e
+# Don't exit on errors - we want to run all checks and report results
+set +e
 
 # Colors for output
 RED='\033[0;31m'
@@ -50,10 +51,12 @@ check_user_groups() {
     
     if groups $USER | grep -q spi; then
         log_success "User $USER is in the spi group"
+        return 0
     else
         log_warning "User $USER is not in the spi group"
         log_info "Add user to spi group with: sudo usermod -aG spi $USER"
         log_info "Then log out and back in (or reboot)"
+        return 1
     fi
 }
 
