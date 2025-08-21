@@ -10,6 +10,10 @@ temp/
 /logs/
 # Note: test_results/logs/ is tracked (for .gitkeep files)
 
+# Log rotation files
+*.log.*
+*.log.*.gz
+
 # Test result files (but keep directory structure and .gitkeep files)
 test_results/screenshots/*.png
 test_results/reports/*.csv

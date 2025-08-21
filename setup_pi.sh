@@ -167,6 +167,35 @@ EOF
     fi
 }
 
+# Setup log rotation
+setup_log_rotation() {
+    log_info "Setting up log rotation..."
+    
+    # Create logrotate configuration for pi-home-dash
+    sudo tee /etc/logrotate.d/pi-home-dash > /dev/null << EOF
+$HOME/pi-home-dash/logs/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 644 $USER $USER
+    postrotate
+        # Send SIGUSR1 to the application to reopen log files if needed
+        systemctl reload-or-restart pi-home-dash.service > /dev/null 2>&1 || true
+    endscript
+}
+EOF
+    
+    # Test the logrotate configuration
+    if sudo logrotate -d /etc/logrotate.d/pi-home-dash > /dev/null 2>&1; then
+        log_success "Log rotation configuration created and tested"
+    else
+        log_warning "Log rotation configuration created but test failed"
+    fi
+}
+
 # Create systemd service for automatic startup
 create_systemd_service() {
     log_info "Creating systemd service..."
@@ -235,6 +264,7 @@ main() {
     create_directories
     setup_python_env
     setup_environment
+    setup_log_rotation
     create_systemd_service
     
     log_success "Setup completed successfully!"
