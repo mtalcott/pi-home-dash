@@ -112,7 +112,13 @@ setup_python_env() {
     if pip install --no-cache-dir -r requirements.txt; then
         log_info "Installing Playwright Chromium browser..."
         if playwright install chromium; then
-            log_success "Python environment and Playwright Chromium setup complete"
+            log_info "Fixing GPIO library conflicts..."
+            # Fix GPIO library conflicts that can cause hardware initialization errors
+            python3 -m pip uninstall -y Jetson.GPIO 2>/dev/null || true
+            python -m pip install --upgrade --force-reinstall \
+                adafruit-blinka Adafruit-PlatformDetect Adafruit-PureIO
+            pip install --force-reinstall RPi.GPIO
+            log_success "Python environment, Playwright Chromium, and GPIO libraries setup complete"
         else
             log_error "Playwright Chromium installation failed"
             exit 1

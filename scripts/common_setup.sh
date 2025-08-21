@@ -11,12 +11,12 @@ get_common_system_deps() {
 
 # Docker-specific system dependencies
 get_docker_system_deps() {
-    echo "chromium xvfb"
+    echo "xvfb"
 }
 
 # Pi-specific system dependencies
 get_pi_system_deps() {
-    echo "chromium python3-pip python3-venv python3-spidev python3-rpi.gpio"
+    echo "python3-pip python3-venv python3-spidev python3-rpi.gpio"
 }
 
 # Install common system dependencies
