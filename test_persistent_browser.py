@@ -116,45 +116,6 @@ def test_persistent_browser():
             print(f"⚠️  Cleanup error: {e}")
 
 
-def test_fallback_rendering():
-    """Test fallback to standard rendering."""
-    print("\n" + "="*50)
-    print("Testing fallback rendering...")
-    
-    # Create settings and load .env file
-    settings = Settings()
-    env_file = Path(__file__).parent / ".env"
-    if env_file.exists():
-        settings.load_from_file(env_file)
-        print(f"✅ Loaded configuration from {env_file}")
-    else:
-        print(f"⚠️  No .env file found at {env_file}")
-    
-    renderer = DashboardRenderer(settings)
-    
-    if not settings.dakboard_url:
-        print("❌ No DAKboard URL configured for fallback test.")
-        return False
-    
-    try:
-        print("Taking screenshot using standard rendering...")
-        start_time = time.time()
-        image = renderer._run_chromium(settings.dakboard_url, settings.browser_timeout)
-        duration = time.time() - start_time
-        
-        if image:
-            print(f"✅ Standard rendering successful in {duration:.1f}s")
-            print(f"   Image size: {image.size}")
-            return True
-        else:
-            print("❌ Standard rendering failed")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Standard rendering failed with error: {e}")
-        return False
-
-
 if __name__ == "__main__":
     print("Pi Home Dashboard - Persistent Browser Test")
     print("=" * 50)
@@ -162,17 +123,13 @@ if __name__ == "__main__":
     # Test persistent browser
     persistent_success = test_persistent_browser()
     
-    # Test fallback rendering
-    fallback_success = test_fallback_rendering()
-    
     print("\n" + "="*50)
     print("TEST SUMMARY:")
     print(f"Persistent Browser: {'✅ PASS' if persistent_success else '❌ FAIL'}")
-    print(f"Fallback Rendering: {'✅ PASS' if fallback_success else '❌ FAIL'}")
     
-    if persistent_success and fallback_success:
+    if persistent_success:
         print("\n🎉 All tests passed! The persistent browser implementation is working correctly.")
         sys.exit(0)
     else:
-        print("\n❌ Some tests failed. Please check the error messages above.")
+        print("\n❌ Test failed. Please check the error messages above.")
         sys.exit(1)

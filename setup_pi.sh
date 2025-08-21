@@ -110,7 +110,13 @@ setup_python_env() {
     
     # Install dependencies from requirements.txt
     if pip install --no-cache-dir -r requirements.txt; then
-        log_success "Python environment setup complete"
+        log_info "Installing Playwright Chromium browser..."
+        if playwright install chromium; then
+            log_success "Python environment and Playwright Chromium setup complete"
+        else
+            log_error "Playwright Chromium installation failed"
+            exit 1
+        fi
     else
         log_error "Python environment setup failed"
         exit 1

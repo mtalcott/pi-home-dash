@@ -5,6 +5,7 @@ __pycache__/
 
 # Project directories
 cache/
+.cache/
 temp/
 /logs/
 # Note: test_results/logs/ is tracked (for .gitkeep files)

@@ -15,7 +15,8 @@ RUN /tmp/common_setup.sh create_common_directories /app
 
 # Copy requirements file and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    playwright install chromium
 
 # Copy source code
 COPY src/ ./src/
