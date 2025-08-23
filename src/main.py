@@ -158,23 +158,14 @@ class PiHomeDashboard:
         # Initial display update
         self.update_display(force_full_refresh=True)
         
-        last_full_refresh = time.time()
-        
         try:
             while True:
                 # Wait for next update interval
                 time.sleep(self.settings.update_interval)
                 
-                # Determine if full refresh is needed
-                current_time = time.time()
-                time_since_full_refresh = current_time - last_full_refresh
-                force_full_refresh = time_since_full_refresh >= self.settings.full_refresh_interval
-                
-                # Update display
-                success = self.update_display(force_full_refresh)
-                
-                if force_full_refresh and success:
-                    last_full_refresh = current_time
+                # Update display - let the eink_driver handle full vs partial refresh logic
+                # based on the partial refresh count
+                success = self.update_display(force_full_refresh=False)
                     
         except KeyboardInterrupt:
             self.logger.info("Dashboard stopped by user")

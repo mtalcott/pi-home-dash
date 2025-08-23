@@ -3,7 +3,7 @@ Configuration settings for Pi Home Dashboard.
 
 Minimal env-based migration:
 - Only wire up env vars that are already used by the code paths:
-  DAKBOARD_URL, DEBUG, UPDATE_INTERVAL, FULL_REFRESH_INTERVAL,
+  DAKBOARD_URL, DEBUG, UPDATE_INTERVAL, EINK_PARTIAL_REFRESH_LIMIT,
   DISPLAY_WIDTH, DISPLAY_HEIGHT, DASHBOARD_TYPE
 - Keep other settings as internal defaults (no new envs introduced).
 - Implement load_from_file/save_to_file for simple .env-style files
@@ -49,7 +49,6 @@ class Settings:
 
         # Update intervals (in seconds)
         "update_interval": 60,           # 1 minute
-        "full_refresh_interval": 3600,   # 1 hour
 
         # Dashboard settings
         "dashboard_type": "dakboard",    # "dakboard" or "custom" or "integration_test"
@@ -64,7 +63,7 @@ class Settings:
         "browser_timeout": 30,  # seconds
 
         # E-ink display specific settings
-        "eink_partial_refresh_limit": 10,  # Number of partial refreshes before full refresh
+        "eink_partial_refresh_limit": 60,  # Number of partial refreshes before full refresh
         "eink_ghosting_prevention": True,
 
         # Omni-EPD settings
@@ -85,7 +84,6 @@ class Settings:
         self.display_rotation = self.DEFAULTS["display_rotation"]
 
         self.update_interval = self.DEFAULTS["update_interval"]
-        self.full_refresh_interval = self.DEFAULTS["full_refresh_interval"]
 
         self.dashboard_type = self.DEFAULTS["dashboard_type"]
         self.dakboard_url = self.DEFAULTS["dakboard_url"]
@@ -130,8 +128,10 @@ class Settings:
 
         # Update cadence
         self.update_interval = _get_env_int("UPDATE_INTERVAL", self.update_interval)
-        self.full_refresh_interval = _get_env_int("FULL_REFRESH_INTERVAL", self.full_refresh_interval)
         self.browser_timeout = _get_env_int("BROWSER_TIMEOUT", self.browser_timeout)
+        
+        # E-ink display settings
+        self.eink_partial_refresh_limit = _get_env_int("EINK_PARTIAL_REFRESH_LIMIT", self.eink_partial_refresh_limit)
 
         # Display geometry
         self.display_width = _get_env_int("DISPLAY_WIDTH", self.display_width)
@@ -206,7 +206,6 @@ class Settings:
             "",
             "# Update Cadence",
             f"UPDATE_INTERVAL={self.update_interval}",
-            f"FULL_REFRESH_INTERVAL={self.full_refresh_interval}",
             "",
             "# Display Geometry",
             f"DISPLAY_WIDTH={self.display_width}",

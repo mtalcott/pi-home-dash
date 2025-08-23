@@ -95,13 +95,18 @@ class EInkDriver:
             )
             
             if not OMNI_EPD_AVAILABLE:
+                # Update refresh counter for simulation too
+                if need_full_refresh:
+                    self.partial_refresh_count = 0
+                else:
+                    self.partial_refresh_count += 1
                 return self._simulate_update(image, need_full_refresh)
             
             if not self.hardware_initialized:
                 self.logger.error("Hardware not initialized")
                 return False
             
-            self.logger.info(f"Updating display ({'full' if need_full_refresh else 'partial'} refresh)")
+            self.logger.info(f"Updating display ({'full' if need_full_refresh else 'partial'} refresh, count: {self.partial_refresh_count})")
             
             # Process image for display
             processed_image = self._process_image(image)
@@ -110,11 +115,13 @@ class EInkDriver:
             if self.epd:
                 self.epd.display(processed_image)
             
-            # Update refresh counter
+            # Update refresh counter AFTER successful display update
             if need_full_refresh:
                 self.partial_refresh_count = 0
+                self.logger.info("Full refresh completed, reset partial refresh count to 0")
             else:
                 self.partial_refresh_count += 1
+                self.logger.debug(f"Partial refresh completed, count now: {self.partial_refresh_count}")
             
             self.last_update_time = time.time()
             self.logger.info("Display update completed successfully")
