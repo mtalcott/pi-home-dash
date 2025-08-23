@@ -69,6 +69,30 @@ class PiHomeDashboard:
             handlers=handlers
         )
     
+    def _initialize_persistent_browser_with_retry(self, max_retries=3, retry_delay=5):
+        """Initialize persistent browser with retry logic."""
+        for attempt in range(1, max_retries + 1):
+            self.logger.info(f"Persistent browser initialization attempt {attempt}/{max_retries}")
+            
+            try:
+                success = self.renderer.start_persistent_browser(self.settings.dakboard_url)
+                if success:
+                    self.logger.info(f"Persistent browser initialized successfully on attempt {attempt}")
+                    return True
+                else:
+                    self.logger.warning(f"Attempt {attempt} failed to initialize persistent browser")
+                    
+            except Exception as e:
+                self.logger.error(f"Attempt {attempt} failed with exception: {e}")
+            
+            # Wait before retrying (except on the last attempt)
+            if attempt < max_retries:
+                self.logger.info(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+        
+        self.logger.error(f"Failed to initialize persistent browser after {max_retries} attempts")
+        return False
+    
     def update_display(self, force_full_refresh=False):
         """Update the e-ink display with current dashboard content."""
         # Record update attempt
@@ -83,13 +107,14 @@ class PiHomeDashboard:
                 self.settings.dakboard_url):
                 
                 self.logger.info("Initializing persistent browser for DAKboard...")
-                success = self.renderer.start_persistent_browser(self.settings.dakboard_url)
+                success = self._initialize_persistent_browser_with_retry()
                 if success:
                     self.persistent_browser_enabled = True
                     self.browser_refresh_count = 0
                     self.logger.info("Persistent browser initialized successfully")
                 else:
-                    self.logger.warning("Failed to initialize persistent browser, falling back to standard rendering")
+                    self.logger.error("Failed to initialize persistent browser after retries")
+                    return False
             
             # Render dashboard content with performance timing
             self.logger.info("Rendering dashboard content...")
@@ -114,12 +139,22 @@ class PiHomeDashboard:
                     dashboard_image = self.renderer.render_persistent_screenshot()
                     self.browser_refresh_count += 1
                 
-                # Fall back to standard rendering if persistent browser fails
+                # If screenshot fails, retry persistent browser initialization
                 if dashboard_image is None:
-                    self.logger.warning("Persistent browser screenshot failed, falling back to standard rendering")
+                    self.logger.warning("Persistent browser screenshot failed, retrying initialization...")
                     self.persistent_browser_enabled = False
-                    with PerformanceTimer(self.metrics, 'render', render_type='standard'):
-                        dashboard_image = self.renderer.render()
+                    success = self._initialize_persistent_browser_with_retry()
+                    if success:
+                        self.persistent_browser_enabled = True
+                        self.browser_refresh_count = 0
+                        # Try screenshot again with newly initialized browser
+                        with PerformanceTimer(self.metrics, 'render', render_type='persistent_browser'):
+                            dashboard_image = self.renderer.render_persistent_screenshot()
+                            self.browser_refresh_count += 1
+                    
+                    if dashboard_image is None:
+                        self.logger.error("Failed to render dashboard after persistent browser retry")
+                        return False
             else:
                 # Use standard rendering for non-DAKboard or when persistent browser is not available
                 with PerformanceTimer(self.metrics, 'render', render_type='standard'):
