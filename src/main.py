@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.settings import Settings
 from dashboard.renderer import DashboardRenderer
 from display.eink_driver import EInkDriver
+from monitoring.metrics_collector import MetricsCollector, PerformanceTimer
 
 
 class PiHomeDashboard:
@@ -28,6 +29,10 @@ class PiHomeDashboard:
         self.settings = Settings()
         self.renderer = DashboardRenderer(self.settings)
         self.display = EInkDriver(self.settings)
+        
+        # Initialize metrics collection
+        self.metrics = MetricsCollector(self.settings.cache_dir)
+        self.metrics.set_update_interval(self.settings.update_interval)
         
         # Persistent browser state
         self.persistent_browser_enabled = False
@@ -66,6 +71,9 @@ class PiHomeDashboard:
     
     def update_display(self, force_full_refresh=False):
         """Update the e-ink display with current dashboard content."""
+        # Record update attempt
+        self.metrics.record_update_attempt()
+        
         try:
             self.logger.info("Starting display update...")
             
@@ -83,8 +91,9 @@ class PiHomeDashboard:
                 else:
                     self.logger.warning("Failed to initialize persistent browser, falling back to standard rendering")
             
-            # Render dashboard content
+            # Render dashboard content with performance timing
             self.logger.info("Rendering dashboard content...")
+            dashboard_image = None
             
             # Use persistent browser for DAKboard if available
             if (self.settings.dashboard_type == "dakboard" and 
@@ -100,29 +109,44 @@ class PiHomeDashboard:
                     else:
                         self.logger.warning("Failed to refresh browser page")
                 
-                # Take screenshot using persistent browser
-                dashboard_image = self.renderer.render_persistent_screenshot()
-                self.browser_refresh_count += 1
+                # Take screenshot using persistent browser with timing
+                with PerformanceTimer(self.metrics, 'render', render_type='persistent_browser'):
+                    dashboard_image = self.renderer.render_persistent_screenshot()
+                    self.browser_refresh_count += 1
                 
                 # Fall back to standard rendering if persistent browser fails
                 if dashboard_image is None:
                     self.logger.warning("Persistent browser screenshot failed, falling back to standard rendering")
                     self.persistent_browser_enabled = False
-                    dashboard_image = self.renderer.render()
+                    with PerformanceTimer(self.metrics, 'render', render_type='standard'):
+                        dashboard_image = self.renderer.render()
             else:
                 # Use standard rendering for non-DAKboard or when persistent browser is not available
-                dashboard_image = self.renderer.render()
+                with PerformanceTimer(self.metrics, 'render', render_type='standard'):
+                    dashboard_image = self.renderer.render()
             
             if dashboard_image is None:
                 self.logger.error("Failed to render dashboard content")
                 return False
             
-            # Update display (omni-epd handles image processing)
+            # Update display with performance timing
             self.logger.info("Updating e-ink display...")
-            success = self.display.update(dashboard_image, force_full_refresh)
+            refresh_type = 'full' if force_full_refresh else 'partial'
+            
+            with PerformanceTimer(self.metrics, 'display_update', refresh_type=refresh_type):
+                success = self.display.update(dashboard_image, force_full_refresh)
             
             if success:
                 self.logger.info("Display update completed successfully")
+                self.metrics.record_update_success()
+                
+                # Log performance summary periodically
+                if self.metrics.metrics.get('total_attempts', 0) % 10 == 0:
+                    summary = self.metrics.get_metrics_summary()
+                    self.logger.info(f"Performance summary: "
+                                   f"Avg render: {summary['avg_render_time']:.1f}ms, "
+                                   f"Avg display: {summary['avg_display_time']:.1f}ms, "
+                                   f"Success rate: {summary['success_rate']:.1f}%")
             else:
                 self.logger.error("Display update failed")
                 

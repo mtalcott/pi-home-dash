@@ -458,6 +458,47 @@ renderer.cleanup_persistent_browser()
 "
 ```
 
+## Performance Monitoring
+
+The Pi Home Dashboard includes comprehensive performance monitoring using netdata with custom collectors.
+
+### Key Metrics Monitored
+
+- **Render Delay**: Dashboard rendering performance (persistent browser vs standard)
+- **Display Update Time**: E-ink display refresh performance (partial vs full)
+- **Browser Memory Usage**: Memory consumption of Chromium and Playwright
+- **Success Rates**: Overall reliability and error tracking
+- **System Health**: CPU temperature, memory usage, throttling events
+- **Service Status**: Dashboard service and component availability
+
+### Setup Monitoring
+
+```bash
+# Install and configure netdata with custom collectors
+./scripts/setup_monitoring.sh
+
+# Access monitoring dashboard
+# Navigate to: http://your-pi-ip:19999
+```
+
+### Performance Targets
+
+- **Render Time**: <5 seconds (persistent browser), <30 seconds (standard)
+- **Display Update**: <2 seconds (partial refresh), <10 seconds (full refresh)
+- **Success Rate**: >95% overall reliability
+- **CPU Temperature**: <70°C to avoid throttling
+- **Memory Usage**: <200MB browser memory for optimal performance
+
+### Monitoring Features
+
+- Real-time performance dashboards
+- Automated health alerts
+- Historical performance tracking
+- Mobile-friendly monitoring interface
+- Integration with system metrics
+
+For detailed monitoring documentation, see [MONITORING.md](MONITORING.md) after running the setup script.
+
 ## Contributing
 
 1. Fork the repository
@@ -472,6 +513,7 @@ MIT License - see LICENSE file for details
 ## Acknowledgments
 
 - [omni-epd](https://github.com/robweber/omni-epd) for simplified e-ink display control
+- [netdata](https://www.netdata.cloud/) for real-time performance monitoring
 - Waveshare for e-Paper display hardware and drivers
 - DAKboard for dashboard inspiration
 - lukechilds for Docker Pi virtualization
