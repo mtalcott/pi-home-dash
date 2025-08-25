@@ -145,12 +145,12 @@ class EInkTestUtility:
         
         return image
     
-    def test_full_refresh(self):
+    def test_full_refresh(self, font_size=72):
         """Test full refresh mode."""
         print("\n🔄 Testing FULL refresh...")
         
         # Create test image
-        image = self.create_text_image("FULL REFRESH TEST", font_size=32)
+        image = self.create_text_image("FULL REFRESH TEST", font_size=font_size)
         
         # Force full refresh using driver
         start_time = time.time()
@@ -164,12 +164,12 @@ class EInkTestUtility:
         
         return success
     
-    def test_partial_refresh(self):
+    def test_partial_refresh(self, font_size=72):
         """Test partial refresh mode."""
         print("\n⚡ Testing PARTIAL refresh...")
         
         # Create test image with timestamp to show changes
-        image = self.create_text_image(f"PARTIAL REFRESH\n{time.strftime('%H:%M:%S')}", font_size=28)
+        image = self.create_text_image(f"PARTIAL REFRESH\n{time.strftime('%H:%M:%S')}", font_size=font_size)
         
         # Use partial refresh (don't force full)
         start_time = time.time()
@@ -183,7 +183,7 @@ class EInkTestUtility:
         
         return success
     
-    def test_direct_partial_refresh(self):
+    def test_direct_partial_refresh(self, font_size=72):
         """Test direct partial refresh using omni-epd if available."""
         if not self.epd or not hasattr(self.epd, 'display_partial'):
             print("\n⚠️  Direct partial refresh not available")
@@ -192,7 +192,7 @@ class EInkTestUtility:
         print("\n⚡ Testing DIRECT partial refresh...")
         
         # Create test image
-        image = self.create_text_image(f"DIRECT PARTIAL\n{time.strftime('%H:%M:%S')}", font_size=28)
+        image = self.create_text_image(f"DIRECT PARTIAL\n{time.strftime('%H:%M:%S')}", font_size=font_size)
         processed_image = self.driver._process_image(image)
         
         # Use direct partial refresh
@@ -206,7 +206,7 @@ class EInkTestUtility:
             print(f"❌ Direct partial refresh failed: {e}")
             return False
     
-    def test_direct_full_refresh(self):
+    def test_direct_full_refresh(self, font_size=72):
         """Test direct full refresh using omni-epd if available."""
         if not self.epd:
             print("\n⚠️  Direct full refresh not available")
@@ -215,7 +215,7 @@ class EInkTestUtility:
         print("\n🔄 Testing DIRECT full refresh...")
         
         # Create test image
-        image = self.create_text_image("DIRECT FULL REFRESH", font_size=32)
+        image = self.create_text_image("DIRECT FULL REFRESH", font_size=font_size)
         processed_image = self.driver._process_image(image)
         
         # Use direct full refresh
@@ -287,30 +287,30 @@ class EInkTestUtility:
         
         return success
     
-    def run_refresh_comparison(self):
+    def run_refresh_comparison(self, font_size=72):
         """Run a comparison between full and partial refresh."""
         print("\n🔬 Running refresh comparison test...")
         
         # Test 1: Full refresh
         print("\n--- Test 1: Full Refresh ---")
-        self.test_full_refresh()
+        self.test_full_refresh(font_size)
         time.sleep(2)
         
         # Test 2: Partial refresh
         print("\n--- Test 2: Partial Refresh ---")
-        self.test_partial_refresh()
+        self.test_partial_refresh(font_size)
         time.sleep(2)
         
         # Test 3: Direct partial refresh (if available)
         print("\n--- Test 3: Direct Partial Refresh ---")
-        self.test_direct_partial_refresh()
+        self.test_direct_partial_refresh(font_size)
         time.sleep(2)
         
         # Test 4: Multiple partial refreshes
         print("\n--- Test 4: Multiple Partial Refreshes ---")
         for i in range(3):
             print(f"  Partial refresh {i+1}/3...")
-            image = self.create_text_image(f"PARTIAL #{i+1}\n{time.strftime('%H:%M:%S')}", font_size=28)
+            image = self.create_text_image(f"PARTIAL #{i+1}\n{time.strftime('%H:%M:%S')}", font_size=font_size)
             self.driver.update(image, force_full_refresh=False)
             time.sleep(1)
         
@@ -342,8 +342,8 @@ def main():
                        help='Clear the display')
     parser.add_argument('--text', type=str,
                        help='Display custom text')
-    parser.add_argument('--font-size', type=int, default=24,
-                       help='Font size for custom text (default: 24)')
+    parser.add_argument('--font-size', type=int, default=72,
+                       help='Font size for text (default: 72)')
     parser.add_argument('--pattern', choices=['grid', 'stripes', 'checkerboard'],
                        help='Display test pattern')
     parser.add_argument('--compare', action='store_true',
@@ -361,36 +361,36 @@ def main():
     
     try:
         if args.all:
-            # Run all tests
+            # Run all tests with specified font size
             utility.clear_display()
             time.sleep(1)
-            utility.test_full_refresh()
+            utility.test_full_refresh(args.font_size)
             time.sleep(2)
-            utility.test_partial_refresh()
+            utility.test_partial_refresh(args.font_size)
             time.sleep(2)
-            utility.test_direct_partial_refresh()
+            utility.test_direct_partial_refresh(args.font_size)
             time.sleep(2)
             utility.test_pattern('grid')
             time.sleep(2)
-            utility.run_refresh_comparison()
+            utility.run_refresh_comparison(args.font_size)
             
         elif args.compare:
-            utility.run_refresh_comparison()
+            utility.run_refresh_comparison(args.font_size)
             
         elif args.clear:
             utility.clear_display()
             
         elif args.full_refresh:
-            utility.test_full_refresh()
+            utility.test_full_refresh(args.font_size)
             
         elif args.partial_refresh:
-            utility.test_partial_refresh()
+            utility.test_partial_refresh(args.font_size)
             
         elif args.direct_partial:
-            utility.test_direct_partial_refresh()
+            utility.test_direct_partial_refresh(args.font_size)
             
         elif args.direct_full:
-            utility.test_direct_full_refresh()
+            utility.test_direct_full_refresh(args.font_size)
             
         elif args.text:
             utility.display_custom_text(args.text, args.font_size)
@@ -402,7 +402,7 @@ def main():
             # Default: show help and run basic test
             parser.print_help()
             print("\nRunning basic display test...")
-            utility.test_full_refresh()
+            utility.test_full_refresh(args.font_size)
     
     except KeyboardInterrupt:
         print("\n\n⏹️  Test interrupted by user")
