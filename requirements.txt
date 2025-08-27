@@ -5,3 +5,4 @@ playwright>=1.40.0
 
 # Monitoring and metrics collection
 psutil>=5.9.0
+statsd>=4.0.0

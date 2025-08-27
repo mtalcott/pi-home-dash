@@ -61,35 +61,21 @@ install_netdata() {
     fi
 }
 
-# Setup custom collector
-setup_custom_collector() {
-    log_info "Setting up Pi Dashboard custom collector..."
+# Enable statsd collector for Pi Dashboard metrics
+enable_statsd_collector() {
+    log_info "Enabling statsd collector for Pi Dashboard metrics..."
     
-    # Copy the custom collector to netdata's python.d directory
-    sudo cp "$PROJECT_ROOT/monitoring/collectors/pi_dashboard.py" /usr/libexec/netdata/python.d/
-    sudo chown netdata:netdata /usr/libexec/netdata/python.d/pi_dashboard.py
-    sudo chmod 755 /usr/libexec/netdata/python.d/pi_dashboard.py
-    
-    # Create collector configuration
-    sudo tee /etc/netdata/python.d/pi_dashboard.conf > /dev/null << EOF
-# Pi Home Dashboard Custom Collector Configuration
+    # Ensure statsd is enabled in netdata configuration
+    sudo tee -a /etc/netdata/netdata.conf > /dev/null << 'EOF'
 
-# Enable the collector
-pi_dashboard: yes
-
-# Update interval (seconds)
-update_every: 5
-
-# Priority (lower numbers = higher priority)
-priority: 60000
-
-# Retries on failure
-retries: 60
+[statsd]
+    enabled = yes
+    bind to = udp:localhost:8125 tcp:localhost:8125
+    update every = 1
+    create private charts for metrics matching = pi_dashboard.*
 EOF
     
-    sudo chown netdata:netdata /etc/netdata/python.d/pi_dashboard.conf
-    
-    log_success "Custom collector installed"
+    log_success "StatsD collector enabled for Pi Dashboard metrics"
 }
 
 # Create monitoring dashboard configuration
@@ -345,7 +331,7 @@ main() {
     get_project_root
     
     install_netdata
-    setup_custom_collector
+    enable_statsd_collector
     create_dashboard_config
     create_metrics_service
     create_documentation
