@@ -1,7 +1,6 @@
 """
 Image processing utilities for e-ink display optimization.
 Handles image conversion and test image generation.
-Dithering is handled by omni-epd via configuration.
 """
 
 import logging

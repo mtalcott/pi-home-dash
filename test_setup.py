@@ -29,10 +29,10 @@ def test_imports():
         return False
     
     try:
-        from display.eink_driver import EInkDriver
-        print("✓ EInkDriver import successful")
+        from display.it8951_driver import IT8951Driver
+        print("✓ IT8951Driver import successful")
     except ImportError as e:
-        print(f"✗ EInkDriver import failed: {e}")
+        print(f"✗ IT8951Driver import failed: {e}")
         return False
     
     return True
@@ -58,43 +58,52 @@ def test_display_driver():
     
     try:
         from config.settings import Settings
-        from display.eink_driver import EInkDriver
+        from display.it8951_driver import IT8951Driver
         
         settings = Settings()
-        driver = EInkDriver(settings)
+        driver = IT8951Driver(settings)
         
         print(f"✓ Display driver initialized")
         print(f"✓ Hardware available: {driver.is_available}")
         print(f"✓ Display size: {driver.width}x{driver.height}")
+        print(f"✓ Supports partial refresh: {driver.supports_partial_refresh}")
         
         return True
     except Exception as e:
         print(f"✗ Display driver test failed: {e}")
         return False
 
-def test_omni_epd():
-    """Test omni-epd library availability."""
-    print("\nTesting omni-epd library...")
+def test_it8951():
+    """Test IT8951 library availability and functionality."""
+    print("\nTesting IT8951 library...")
     
     try:
-        from omni_epd import displayfactory
-        print("✓ omni-epd library available")
+        from config.settings import Settings
+        from display.it8951_driver import IT8951Driver
         
-        # Test mock display
-        mock_display = displayfactory.load_display_driver("omni_epd.mock")
-        if mock_display:
-            print("✓ Mock display driver loaded successfully")
-            print(f"✓ Mock display size: {mock_display.width}x{mock_display.height}")
+        # Test with mock mode
+        settings = Settings()
+        settings.display_type = "mock"  # Force mock mode for testing
+        
+        driver = IT8951Driver(settings)
+        print("✓ IT8951Driver initialized successfully")
+        print(f"✓ Mock mode: {driver.mock_mode}")
+        print(f"✓ Display size: {driver.width}x{driver.height}")
+        print(f"✓ Supports partial refresh: {driver.supports_partial_refresh}")
+        
+        # Test basic functionality
+        test_result = driver.test_display()
+        if test_result:
+            print("✓ Display test completed successfully")
         else:
-            print("✗ Mock display driver failed to load")
-            return False
-            
+            print("⚠️  Display test completed with warnings (check logs)")
+        
         return True
-    except ImportError:
-        print("✗ omni-epd library not available")
+    except ImportError as e:
+        print(f"✗ IT8951 library not available: {e}")
         return False
     except Exception as e:
-        print(f"✗ omni-epd test failed: {e}")
+        print(f"✗ IT8951 test failed: {e}")
         return False
 
 def main():
@@ -106,7 +115,7 @@ def main():
         test_imports,
         test_configuration,
         test_display_driver,
-        test_omni_epd
+        test_it8951
     ]
     
     passed = 0

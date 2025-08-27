@@ -136,8 +136,6 @@ validate_common_setup() {
         fi
     done
     
-    # Note: omni-epd has been replaced with IT8951 library for enhanced partial refresh support
-    
     return 0
 }
 

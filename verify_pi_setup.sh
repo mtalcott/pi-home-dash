@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pi Home Dashboard Hardware Verification Script
-# Run this script on the Raspberry Pi to verify SPI and omni-epd setup
+# Run this script on the Raspberry Pi to verify SPI and IT8951 setup
 
 # Don't exit on errors - we want to run all checks and report results
 set +e
@@ -84,9 +84,9 @@ check_spi_config() {
     fi
 }
 
-# Test omni-epd library
-test_omni_epd() {
-    log_info "Testing omni-epd library..."
+# Test IT8951 library
+test_it8951() {
+    log_info "Testing IT8951 library..."
     
     # Check if we're in the project directory
     if [ ! -f "requirements.txt" ] || [ ! -d "venv" ]; then
@@ -100,12 +100,20 @@ test_omni_epd() {
     
     # Test mock display first
     log_info "Testing mock display..."
-    if python -c "
-from omni_epd import displayfactory
-d = displayfactory.load_display_driver('omni_epd.mock')
-print(f'Mock display: {d.width}x{d.height}')
-d.prepare()
-print('Mock display test passed')
+    if DISPLAY_TYPE=mock python -c "
+import sys
+sys.path.insert(0, 'src')
+from config.settings import Settings
+from display.it8951_driver import IT8951Driver
+try:
+    settings = Settings()
+    settings.display_type = 'mock'
+    driver = IT8951Driver(settings)
+    print(f'Mock display: {driver.width}x{driver.height}')
+    print('Mock display test passed')
+except Exception as e:
+    print(f'Mock display test failed: {e}')
+    raise
 " 2>/dev/null; then
         log_success "Mock display test passed"
     else
@@ -115,18 +123,26 @@ print('Mock display test passed')
     
     # Test real hardware display
     log_info "Testing real hardware display..."
-    if OMNI_EPD_DISPLAY=waveshare_epd.it8951 python -c "
-from omni_epd import displayfactory
-import PIL.Image as Image
+    if DISPLAY_TYPE=it8951 python -c "
+import sys
+sys.path.insert(0, 'src')
+from config.settings import Settings
+from display.it8951_driver import IT8951Driver
+from PIL import Image
 try:
-    d = displayfactory.load_display_driver('waveshare_epd.it8951')
-    print(f'Hardware display: {d.width}x{d.height}')
-    d.prepare()
-    # Create a simple white image and display it
-    img = Image.new('L', (d.width, d.height), 255)
-    d.display(img)
-    d.sleep()
-    print('Hardware display test passed')
+    settings = Settings()
+    settings.display_type = 'it8951'
+    driver = IT8951Driver(settings)
+    print(f'Hardware display: {driver.width}x{driver.height}')
+    
+    # Create a simple white image and test display
+    img = Image.new('L', (driver.width, driver.height), 255)
+    success = driver.update(img, force_full_refresh=True)
+    if success:
+        print('Hardware display test passed')
+        driver.sleep()
+    else:
+        raise Exception('Display update failed')
 except Exception as e:
     print(f'Hardware display test failed: {e}')
     raise
@@ -139,6 +155,7 @@ except Exception as e:
         log_info "  - User not in spi group"
         log_info "  - Hardware connection issues"
         log_info "  - Missing permissions"
+        log_info "  - IT8951 library not properly installed"
         return 1
     fi
 }
@@ -156,7 +173,7 @@ test_app_hardware() {
     source venv/bin/activate
     
     # Test with hardware display
-    if OMNI_EPD_DISPLAY=waveshare_epd.it8951 python src/main.py --test; then
+    if DISPLAY_TYPE=it8951 python src/main.py --test; then
         log_success "Application hardware test passed"
     else
         log_error "Application hardware test failed"
@@ -188,7 +205,7 @@ main() {
     fi
     echo
     
-    if test_omni_epd; then
+    if test_it8951; then
         ((checks_passed++))
     fi
     echo

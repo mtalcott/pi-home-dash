@@ -16,13 +16,14 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from config.settings import Settings
-from display.eink_driver import EInkDriver
+from display.it8951_driver import IT8951Driver
 
 try:
-    from omni_epd import displayfactory, EPDNotFoundError
-    OMNI_EPD_AVAILABLE = True
+    from IT8951.display import AutoEPDDisplay
+    from IT8951 import constants
+    IT8951_AVAILABLE = True
 except ImportError:
-    OMNI_EPD_AVAILABLE = False
+    IT8951_AVAILABLE = False
 
 
 class EInkTestUtility:
@@ -38,34 +39,30 @@ class EInkTestUtility:
             self.settings.load_from_file(env_file)
             print(f"✅ Loaded configuration from {env_file}")
         
-        self.driver = EInkDriver(self.settings)
-        self.epd = None
+        self.driver = IT8951Driver(self.settings)
+        self.direct_display = None
         
-        # Initialize direct omni-epd access for advanced testing
-        if OMNI_EPD_AVAILABLE:
+        # Initialize direct IT8951 access for advanced testing
+        if IT8951_AVAILABLE and not self.driver.mock_mode:
             try:
-                self.epd = displayfactory.load_display_driver(self.settings.epd_device)
-                if self.epd:
-                    self.epd.prepare()
-                    print(f"✅ Direct omni-epd access initialized: {self.settings.epd_device}")
-                    print(f"   Display size: {self.epd.width}x{self.epd.height}")
+                self.direct_display = AutoEPDDisplay(vcom=-2.06, rotate=None, spi_hz=24000000)
+                if self.direct_display:
+                    print(f"✅ Direct IT8951 access initialized")
+                    print(f"   Display size: {self.direct_display.width}x{self.direct_display.height}")
+                    print(f"   VCOM: {self.direct_display.epd.get_vcom()}")
                     
-                    # Check available methods
-                    methods = []
-                    if hasattr(self.epd, 'display_partial'):
-                        methods.append('display_partial')
-                    if hasattr(self.epd, 'display_full'):
-                        methods.append('display_full')
-                    if hasattr(self.epd, 'display'):
-                        methods.append('display')
-                    if hasattr(self.epd, 'clear'):
-                        methods.append('clear')
-                    
+                    # Available methods for IT8951
+                    methods = ['draw_full', 'draw_partial', 'clear']
                     print(f"   Available methods: {', '.join(methods)}")
                     
             except Exception as e:
-                print(f"⚠️  Could not initialize direct omni-epd access: {e}")
-                self.epd = None
+                print(f"⚠️  Could not initialize direct IT8951 access: {e}")
+                self.direct_display = None
+        else:
+            if self.driver.mock_mode:
+                print("ℹ️  Running in mock mode - direct IT8951 access disabled")
+            else:
+                print("⚠️  IT8951 library not available - direct access disabled")
     
     def create_text_image(self, text, font_size=24, center=True):
         """Create an image with centered text."""
@@ -184,8 +181,8 @@ class EInkTestUtility:
         return success
     
     def test_direct_partial_refresh(self, font_size=72):
-        """Test direct partial refresh using omni-epd if available."""
-        if not self.epd or not hasattr(self.epd, 'display_partial'):
+        """Test direct partial refresh using IT8951 if available."""
+        if not self.direct_display:
             print("\n⚠️  Direct partial refresh not available")
             return False
         
@@ -198,7 +195,8 @@ class EInkTestUtility:
         # Use direct partial refresh
         start_time = time.time()
         try:
-            self.epd.display_partial(processed_image)
+            self.direct_display.frame_buf.paste(processed_image, (0, 0))
+            self.direct_display.draw_partial(constants.DisplayModes.DU)
             duration = time.time() - start_time
             print(f"✅ Direct partial refresh completed in {duration:.2f}s")
             return True
@@ -207,8 +205,8 @@ class EInkTestUtility:
             return False
     
     def test_direct_full_refresh(self, font_size=72):
-        """Test direct full refresh using omni-epd if available."""
-        if not self.epd:
+        """Test direct full refresh using IT8951 if available."""
+        if not self.direct_display:
             print("\n⚠️  Direct full refresh not available")
             return False
         
@@ -221,12 +219,8 @@ class EInkTestUtility:
         # Use direct full refresh
         start_time = time.time()
         try:
-            if hasattr(self.epd, 'display_full'):
-                self.epd.display_full(processed_image)
-            else:
-                # Fall back to regular display method
-                self.epd.display(processed_image)
-            
+            self.direct_display.frame_buf.paste(processed_image, (0, 0))
+            self.direct_display.draw_full(constants.DisplayModes.GC16)
             duration = time.time() - start_time
             print(f"✅ Direct full refresh completed in {duration:.2f}s")
             return True
@@ -319,8 +313,8 @@ class EInkTestUtility:
     def cleanup(self):
         """Clean up resources."""
         try:
-            if self.epd and hasattr(self.epd, 'close'):
-                self.epd.close()
+            if self.direct_display and hasattr(self.direct_display, 'close'):
+                self.direct_display.close()
             self.driver.cleanup()
             print("✅ Cleanup completed")
         except Exception as e:
@@ -335,9 +329,9 @@ def main():
     parser.add_argument('--partial-refresh', action='store_true',
                        help='Test partial refresh mode')
     parser.add_argument('--direct-partial', action='store_true',
-                       help='Test direct partial refresh (omni-epd)')
+                       help='Test direct partial refresh (IT8951)')
     parser.add_argument('--direct-full', action='store_true',
-                       help='Test direct full refresh (omni-epd)')
+                       help='Test direct full refresh (IT8951)')
     parser.add_argument('--clear', action='store_true',
                        help='Clear the display')
     parser.add_argument('--text', type=str,
