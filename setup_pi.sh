@@ -201,7 +201,7 @@ create_systemd_service() {
     log_info "Creating systemd service..."
     
     # Create systemd service file
-    sudo tee /etc/systemd/system/pi-home-dash.service > /dev/null << EOF
+    sudo tee /etc/systemd/system/pi-home-daseh.service > /dev/null << EOF
 [Unit]
 Description=Pi Home Dashboard
 After=network.target

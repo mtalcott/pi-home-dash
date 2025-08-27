@@ -4,10 +4,14 @@ Collects performance metrics and saves them for netdata monitoring.
 """
 
 import json
+import logging
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+# Set up logger for this module
+logger = logging.getLogger(__name__)
 
 
 class MetricsCollector:
@@ -25,15 +29,22 @@ class MetricsCollector:
         # Performance tracking lists (keep last 100 entries)
         self.max_history = 100
         
+        logger.info(f"MetricsCollector initialized with cache directory: {cache_dir}")
+        logger.info(f"Metrics file location: {self.metrics_file}")
+        logger.info(f"Loaded {len(self.metrics.get('render_times', []))} render time entries")
+        
     def _load_metrics(self) -> Dict:
         """Load existing metrics from file."""
         try:
             if self.metrics_file.exists():
                 with open(self.metrics_file, 'r') as f:
-                    return json.load(f)
-        except Exception:
-            pass
+                    metrics = json.load(f)
+                    logger.info(f"Loaded existing metrics from {self.metrics_file}")
+                    return metrics
+        except Exception as e:
+            logger.warning(f"Failed to load metrics from {self.metrics_file}: {e}")
         
+        logger.info("Creating new metrics structure with default values")
         # Return default metrics structure
         return {
             'render_times': [],
@@ -61,8 +72,9 @@ class MetricsCollector:
             self.metrics['last_updated'] = time.time()
             with open(self.metrics_file, 'w') as f:
                 json.dump(self.metrics, f, indent=2)
+            logger.debug(f"Metrics saved to {self.metrics_file}")
         except Exception as e:
-            print(f"Warning: Failed to save metrics: {e}")
+            logger.error(f"Failed to save metrics: {e}")
     
     def _trim_list(self, data_list: List) -> List:
         """Trim list to maximum history size."""
@@ -72,6 +84,8 @@ class MetricsCollector:
     
     def record_render_time(self, render_time_ms: float, render_type: str = 'standard'):
         """Record a dashboard render time."""
+        logger.info(f"Recording render time: {render_time_ms:.2f}ms (type: {render_type})")
+        
         self.metrics['render_times'].append(render_time_ms)
         self.metrics['render_times'] = self._trim_list(self.metrics['render_times'])
         
@@ -92,11 +106,14 @@ class MetricsCollector:
     
     def record_render_success(self):
         """Record a successful render."""
+        logger.info("Recording successful render")
         self.metrics['render_successes'] += 1
         self._save_metrics()
     
     def record_display_update_time(self, update_time_ms: float, refresh_type: str = 'partial'):
         """Record a display update time."""
+        logger.info(f"Recording display update time: {update_time_ms:.2f}ms (type: {refresh_type})")
+        
         self.metrics['display_update_times'].append(update_time_ms)
         self.metrics['display_update_times'] = self._trim_list(
             self.metrics['display_update_times']
@@ -121,11 +138,13 @@ class MetricsCollector:
     
     def record_display_success(self):
         """Record a successful display update."""
+        logger.info("Recording successful display update")
         self.metrics['display_successes'] += 1
         self._save_metrics()
     
     def record_update_attempt(self):
         """Record a dashboard update attempt."""
+        logger.info("Recording dashboard update attempt")
         self.metrics['total_attempts'] += 1
         self.metrics['update_timestamps'].append(time.time())
         self.metrics['update_timestamps'] = self._trim_list(
@@ -135,6 +154,7 @@ class MetricsCollector:
     
     def record_update_success(self):
         """Record a successful dashboard update."""
+        logger.info("Recording successful dashboard update")
         self.metrics['successful_attempts'] += 1
         self._save_metrics()
     
@@ -211,31 +231,41 @@ class PerformanceTimer:
         self.metrics_collector = metrics_collector
         self.operation_type = operation_type
         self.kwargs = kwargs
-        self.start_time = None
-        self.end_time = None
+        self.start_time: Optional[float] = None
+        self.end_time: Optional[float] = None
+        
+        logger.debug(f"PerformanceTimer initialized for operation: {operation_type}")
     
     def __enter__(self):
         """Start timing."""
         self.start_time = time.time()
+        logger.debug(f"Started timing {self.operation_type} operation")
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """End timing and record metrics."""
         self.end_time = time.time()
-        duration_ms = (self.end_time - self.start_time) * 1000
         
-        # Record the timing based on operation type
-        if self.operation_type == 'render':
-            render_type = self.kwargs.get('render_type', 'standard')
-            self.metrics_collector.record_render_time(duration_ms, render_type)
-            if exc_type is None:  # No exception occurred
-                self.metrics_collector.record_render_success()
-        
-        elif self.operation_type == 'display_update':
-            refresh_type = self.kwargs.get('refresh_type', 'partial')
-            self.metrics_collector.record_display_update_time(duration_ms, refresh_type)
-            if exc_type is None:  # No exception occurred
-                self.metrics_collector.record_display_success()
+        if self.start_time is not None:
+            duration_ms = (self.end_time - self.start_time) * 1000
+            
+            if exc_type is None:
+                logger.info(f"Completed {self.operation_type} operation in {duration_ms:.2f}ms")
+            else:
+                logger.warning(f"Failed {self.operation_type} operation after {duration_ms:.2f}ms: {exc_val}")
+            
+            # Record the timing based on operation type
+            if self.operation_type == 'render':
+                render_type = self.kwargs.get('render_type', 'standard')
+                self.metrics_collector.record_render_time(duration_ms, render_type)
+                if exc_type is None:  # No exception occurred
+                    self.metrics_collector.record_render_success()
+            
+            elif self.operation_type == 'display_update':
+                refresh_type = self.kwargs.get('refresh_type', 'partial')
+                self.metrics_collector.record_display_update_time(duration_ms, refresh_type)
+                if exc_type is None:  # No exception occurred
+                    self.metrics_collector.record_display_success()
     
     def get_duration_ms(self) -> Optional[float]:
         """Get the duration in milliseconds."""
