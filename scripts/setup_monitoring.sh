@@ -214,114 +214,6 @@ test_monitoring() {
     return 0
 }
 
-# Create monitoring documentation
-create_documentation() {
-    log_info "Creating monitoring documentation..."
-    
-    cat > "$PROJECT_ROOT/MONITORING.md" << 'EOF'
-# Pi Home Dashboard Monitoring
-
-This document describes the monitoring setup for the Pi Home Dashboard using netdata.
-
-## Overview
-
-The monitoring system tracks key performance metrics:
-
-### Performance Metrics
-- **Render Performance**: Dashboard rendering times (persistent browser vs standard)
-- **Display Performance**: E-ink display update times (full vs partial refresh)
-- **Browser Memory**: Memory usage of Chromium and Playwright processes
-- **Update Frequency**: Actual vs expected update frequency
-- **Success Rates**: Overall, render, and display success rates
-
-### System Health
-- **CPU Temperature**: Raspberry Pi CPU temperature monitoring
-- **Throttling Events**: CPU throttling detection
-- **Memory Usage**: System memory utilization
-- **Disk Usage**: Storage utilization
-
-### Service Status
-- **Service Running**: Pi Home Dashboard service status
-- **Persistent Browser**: Browser process status
-- **Display Connected**: E-ink display connection status
-- **Network Connected**: Internet connectivity status
-
-## Accessing Monitoring
-
-### Netdata Dashboard
-Access the monitoring dashboard at: `http://your-pi-ip:19999`
-
-### Key Charts
-- **Pi Dashboard > Render Performance**: Rendering time metrics
-- **Pi Dashboard > Display Performance**: E-ink update times
-- **Pi Dashboard > Browser Memory**: Memory usage tracking
-- **Pi Dashboard > Success Rate**: Reliability metrics
-- **Pi Dashboard > System Health**: Temperature and resource usage
-- **Pi Dashboard > Service Status**: Service availability
-
-### Mobile Access
-The netdata dashboard is mobile-friendly and can be accessed from phones/tablets.
-
-## Alerts
-
-Health monitoring alerts are configured for:
-
-- High render times (>30s warning, >60s critical)
-- Low success rates (<90% warning, <75% critical)
-- Service downtime
-- Display disconnection
-- High CPU temperature (>70°C warning, >80°C critical)
-- High memory usage (>80% warning, >90% critical)
-- Excessive browser memory usage (>200MB warning, >400MB critical)
-
-## Performance Optimization
-
-### Key Metrics to Monitor
-
-1. **Render Delay**: Target <5 seconds for persistent browser, <30 seconds for standard
-2. **Display Update Time**: Target <2 seconds for partial refresh, <10 seconds for full
-3. **Success Rate**: Target >95% overall success rate
-4. **Memory Usage**: Keep browser memory <200MB for optimal performance
-5. **CPU Temperature**: Keep below 70°C to avoid throttling
-
-### Troubleshooting
-
-#### High Render Times
-- Check network connectivity
-- Verify DAKboard URL accessibility
-- Consider browser restart if persistent browser is slow
-
-#### Display Update Failures
-- Check SPI connection
-- Verify display power
-- Check for GPIO conflicts
-
-#### High Memory Usage
-- Restart persistent browser daily (automatic)
-- Monitor for memory leaks
-- Consider reducing browser cache
-
-#### CPU Throttling
-- Improve cooling/ventilation
-- Reduce update frequency during hot weather
-- Monitor power supply adequacy
-
-## Log Files
-
-- Application logs: `/var/log/pi-dashboard.log` or `~/pi-home-dash/logs/`
-- Netdata logs: `/var/log/netdata/`
-- System logs: `journalctl -u pi-home-dash`
-
-## Configuration Files
-
-- Netdata config: `/etc/netdata/netdata.conf`
-- Custom collector: `/usr/libexec/netdata/python.d/pi_dashboard.py`
-- Health alerts: `/etc/netdata/health.d/pi_dashboard.conf`
-- Metrics data: `~/pi-home-dash/cache/metrics.json`
-EOF
-    
-    log_success "Monitoring documentation created: $PROJECT_ROOT/MONITORING.md"
-}
 
 # Main setup function
 main() {
@@ -334,7 +226,6 @@ main() {
     enable_statsd_collector
     create_dashboard_config
     create_metrics_service
-    create_documentation
     
     # Restart netdata to load new configuration
     log_info "Restarting netdata to load new configuration..."
@@ -352,8 +243,7 @@ main() {
         log_info "Next steps:"
         log_info "1. Access netdata dashboard at: http://$(hostname -I | awk '{print $1}'):19999"
         log_info "2. Look for 'Pi Dashboard' section in the dashboard"
-        log_info "3. Review monitoring documentation: $PROJECT_ROOT/MONITORING.md"
-        log_info "4. Run the dashboard to start collecting metrics: sudo systemctl start pi-home-dash"
+        log_info "3. Run the dashboard to start collecting metrics: sudo systemctl start pi-home-dash"
         log_info ""
         log_info "Key performance metrics to monitor:"
         log_info "- Render delay (target: <5s persistent browser, <30s standard)"
