@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings import Settings
 from dashboard.renderer import DashboardRenderer
-from display.eink_driver import EInkDriver
+from display.it8951_driver import IT8951Driver
 
 
 class IntegrationTestRunner:
@@ -42,7 +42,7 @@ class IntegrationTestRunner:
         
         # Initialize components
         self.renderer = DashboardRenderer(self.settings)
-        self.display = EInkDriver(self.settings)
+        self.display = IT8951Driver(self.settings)
         
         # Test state
         self.start_time: Optional[float] = None
@@ -76,7 +76,7 @@ class IntegrationTestRunner:
         settings.test_html_path = Path(__file__).parent / "test_dashboard.html"
         
         # Ensure mock display for testing
-        settings.epd_device = "omni_epd.mock"
+        settings.display_type = "mock"
         
         return settings
     

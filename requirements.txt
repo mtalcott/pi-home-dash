@@ -1,4 +1,4 @@
-git+https://github.com/robweber/omni-epd.git@6bfcb2e8857e4ba33714dff05ae21489541a549a#egg=omni-epd
+git+https://github.com/GregDMeyer/IT8951.git@master#egg=IT8951
 
 # Browser automation for persistent rendering
 playwright>=1.40.0

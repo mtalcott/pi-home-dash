@@ -136,10 +136,7 @@ validate_common_setup() {
         fi
     done
     
-    # Check omni-epd separately as it might not be available in all environments
-    if ! "$python_cmd" -c "import omni_epd" 2>/dev/null; then
-        echo "Warning: omni-epd package not found (may be expected in some environments)"
-    fi
+    # Note: omni-epd has been replaced with IT8951 library for enhanced partial refresh support
     
     return 0
 }

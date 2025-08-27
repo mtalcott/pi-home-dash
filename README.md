@@ -10,7 +10,7 @@ This project creates a home smart calendar using:
 - **Features**: Calendar, weather, and to-do lists
 - **Frame**: White shadow box frame for clean presentation
 - **Testing**: Docker virtualization using lukechilds/dockerpi
-- **Display Library**: omni-epd for simplified e-ink display control
+- **Display Library**: GregDMeyer/IT8951 for enhanced partial refresh support
 
 ## Hardware Components
 
@@ -30,7 +30,7 @@ This project creates a home smart calendar using:
 - **Resolution**: 1872×1404 pixels
 - **Refresh time**: <1 second full refresh, partial refresh support
 - **Interface**: SPI/GPIO connection to Raspberry Pi
-- **omni-epd device**: `waveshare_epd.it8951`
+- **IT8951 controller**: Direct communication via GregDMeyer/IT8951 library
 
 ### Frame Options
 - 8×10" White Shadow Box Frame
@@ -42,16 +42,16 @@ This project creates a home smart calendar using:
 
 ### Core Components
 1. **Dashboard Renderer**: Headless browser to render DAKboard or custom dashboard
-2. **Display Driver**: Uses omni-epd library for simplified e-ink display control
+2. **Display Driver**: Uses IT8951 library for direct e-ink display control with enhanced partial refresh
 3. **Scheduler**: Automated updates every few minutes
 4. **Configuration**: Centralized settings management
 
-### Display Library - omni-epd
-This project uses the [omni-epd](https://github.com/robweber/omni-epd) library for e-ink display control:
-- **Simplified API**: Abstract interface for multiple display types
-- **Built-in Processing**: Automatic image conversion and dithering
-- **Hardware Abstraction**: Works with or without physical hardware
-- **Testing Support**: Mock display for development
+### Display Library - IT8951
+This project uses the [GregDMeyer/IT8951](https://github.com/GregDMeyer/IT8951) library for enhanced e-ink display control:
+- **Direct Controller Access**: Direct communication with IT8951 controller for optimal performance
+- **Enhanced Partial Refresh**: Region-specific partial updates with configurable refresh modes
+- **Advanced Display Modes**: GC16 for full refresh, DU for fast partial refresh
+- **Mock Testing Support**: Simulation mode for development and CI/CD
 
 ### Data Sources
 - DAKboard dashboard content (handles calendar, weather, todos, and custom widgets)
@@ -81,7 +81,7 @@ The persistent browser is automatically enabled for DAKboard rendering and uses 
 ## GPIO SPI Connection
 
 ### Pi Zero 2 W to Waveshare 10.3" HAT
-The omni-epd library handles the low-level SPI communication, but the physical connections are:
+The IT8951 library handles the low-level SPI communication, but the physical connections are:
 
 | IT8951 Pin | Raspberry Pi GPIO | Function |
 |------------|-------------------|----------|
@@ -139,7 +139,7 @@ pi-home-dash/
 │   ├── dashboard/
 │   │   └── renderer.py      # Dashboard rendering logic
 │   ├── display/
-│   │   ├── eink_driver.py   # omni-epd wrapper for display control
+│   │   ├── it8951_driver.py # IT8951 driver for enhanced e-ink display control
 │   │   └── image_processor.py # Additional image utilities (optional)
 │   ├── config/
 │   │   └── settings.py      # Configuration management
@@ -155,7 +155,6 @@ pi-home-dash/
 ├── requirements.txt        # Python dependencies
 ├── Dockerfile             # Docker configuration
 ├── docker-compose.yml     # Docker Compose for testing
-├── omni-epd.ini           # omni-epd display configuration
 ├── .env.example           # Environment variables template
 └── README.md              # This file
 ```
@@ -225,7 +224,7 @@ docker-compose run --rm pi-home-dash python src/main.py --continuous
 docker-compose run --rm pi-home-dash python src/main.py --debug
 
 # Run integration test (end-to-end pipeline test)
-docker-compose run --rm pi-home-dash python src/main.py --integration-test --test-duration 60 --test-interval 3
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --duration 60 --interval 3
 ```
 
 ### Integration Testing
@@ -237,7 +236,7 @@ The project includes comprehensive end-to-end integration tests that validate th
 docker-compose run --rm pi-home-dash python src/main.py --integration-test
 
 # Custom test duration and intervals
-docker-compose run --rm pi-home-dash python src/main.py --integration-test --test-duration 30 --test-interval 2
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --duration 30 --interval 2
 
 # With artifact collection and validation
 docker-compose run --rm pi-home-dash python src/main.py --integration-test --collect-artifacts
@@ -268,12 +267,13 @@ Once installed, the dashboard will:
 5. Perform full refresh periodically to clear ghosting
 
 ### Display Configuration
-The display can be configured in `src/config/settings.py`:
-```python
-# omni-epd settings
-epd_device = "waveshare_epd.it8951"  # Device type for 10.3" display
-epd_mode = "bw"  # Display mode: "bw" or "gray16"
+The display can be configured via environment variables in `.env`:
+```bash
+# IT8951 display settings
+DISPLAY_TYPE=it8951    # Use IT8951 driver for hardware, 'mock' for testing
 ```
+
+Display behavior is controlled through `src/config/settings.py` which reads these environment variables and configures the IT8951Driver accordingly.
 
 ## Testing with Docker Compose
 
@@ -364,48 +364,42 @@ docker-compose logs -f pi-home-dash
 docker-compose down
 ```
 
-## omni-epd Integration
+## IT8951 Integration
 
 ### Benefits
-- **Simplified Code**: No need for custom SPI communication
-- **Hardware Abstraction**: Works with or without physical display
-- **Built-in Features**: Automatic image processing, dithering, rotation
-- **Testing Support**: Mock display for development
-- **Multiple Display Support**: Easy to switch between display types
+- **Direct Controller Access**: Direct communication with IT8951 controller for optimal performance
+- **Enhanced Partial Refresh**: Region-specific partial updates with configurable refresh modes
+- **Advanced Display Modes**: GC16 for full refresh, DU for fast partial refresh
+- **Mock Testing Support**: Simulation mode for development and CI/CD
+- **Performance Optimization**: Faster refresh times and better control over display behavior
 
 ### Configuration Options
-The omni-epd library supports configuration via `.ini` files:
+The IT8951 driver is configured via environment variables and settings:
 
-Create `omni-epd.ini` in the project root:
-```ini
-[EPD]
-type=waveshare_epd.it8951
-mode=bw
-
-[Display]
-rotate=0
-flip_horizontal=False
-flip_vertical=False
-
-[Image Enhancements]
-contrast=1
-brightness=1
+Environment variables in `.env`:
+```bash
+# Display configuration
+DISPLAY_TYPE=it8951    # Use IT8951 driver for hardware, 'mock' for testing
 ```
+
+The driver automatically handles:
+- SPI communication setup
+- Display initialization
+- Partial refresh region management
+- Mock mode for testing without hardware
+- Performance monitoring and refresh counting
 
 ## Troubleshooting
 
 ### Common Issues
 - **Display not updating**: Check SPI connection and enable SPI in raspi-config
-- **omni-epd import error**: Install with `pip install omni-epd`
 - **Slow rendering**: Ensure sufficient power supply (5V/2.5A minimum)
-- **Ghosting on display**: Perform full refresh periodically
+- **Ghosting on display**: Perform full refresh periodically (handled automatically by IT8951Driver)
 - **Network issues**: Check Wi-Fi configuration and DAKboard URL accessibility
+- **Mock mode issues**: Verify DISPLAY_TYPE environment variable is set correctly
 
 ### Debug Commands
 ```bash
-# Test omni-epd installation
-omni-epd-test -e waveshare_epd.it8951
-
 # Check SPI interface
 ls /dev/spi*
 
@@ -417,18 +411,21 @@ journalctl -u pi-dashboard -f
 
 # Run with debug logging
 docker-compose run --rm pi-home-dash python src/main.py --debug
+
+# Test IT8951 driver directly
+python -c "from src.display.it8951_driver import IT8951Driver; from src.config.settings import Settings; driver = IT8951Driver(Settings()); print('Driver initialized successfully')"
 ```
 
 ### Display Testing
 ```bash
-# Test with omni-epd utility
-omni-epd-test -e waveshare_epd.it8951
-
-# Test with project
+# Test with project (includes IT8951 driver test)
 docker-compose run --rm pi-home-dash python src/main.py --test
 
-# List available display types
-omni-epd-test --list
+# Test in mock mode
+DISPLAY_TYPE=mock docker-compose run --rm pi-home-dash python src/main.py --test
+
+# Test partial refresh functionality
+docker-compose run --rm pi-home-dash python src/main.py --integration-test --duration 30
 ```
 
 ### Persistent Browser Testing
@@ -512,7 +509,7 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 
-- [omni-epd](https://github.com/robweber/omni-epd) for simplified e-ink display control
+- [GregDMeyer/IT8951](https://github.com/GregDMeyer/IT8951) for enhanced e-ink display control with partial refresh support
 - [netdata](https://www.netdata.cloud/) for real-time performance monitoring
 - Waveshare for e-Paper display hardware and drivers
 - DAKboard for dashboard inspiration

@@ -5,7 +5,6 @@ Handles rendering of dashboard content using headless browser or custom layouts.
 
 import asyncio
 import logging
-import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -22,7 +21,6 @@ class DashboardRenderer:
         """Initialize the dashboard renderer."""
         self.settings = settings
         self.logger = logging.getLogger(__name__)
-        self.browser_bin = "chromium"
         
         # Persistent browser state
         self.playwright = None
@@ -75,16 +73,24 @@ class DashboardRenderer:
             return None
     
     def _render_dakboard(self):
-        """Render DAKboard using headless browser."""
+        """Render DAKboard using persistent browser."""
         if not self.settings.dakboard_url:
             self.logger.error("DAKboard URL not configured")
             return None
 
         self.logger.info(f"Rendering DAKboard from URL: {self.settings.dakboard_url}")
-        return self._run_chromium(self.settings.dakboard_url, self.settings.browser_timeout)
+        
+        # Start persistent browser if not running
+        if not self.is_persistent_browser_running:
+            if not self.start_persistent_browser(self.settings.dakboard_url):
+                self.logger.error("Failed to start persistent browser")
+                return None
+        
+        # Take screenshot using persistent browser
+        return self.render_persistent_screenshot()
     
     def _render_integration_test(self):
-        """Render integration test dashboard using local HTML file."""
+        """Render integration test dashboard using persistent browser."""
         self.logger.info("Rendering integration test dashboard")
 
         if not hasattr(self.settings, 'test_html_path') or self.settings.test_html_path is None:
@@ -98,9 +104,14 @@ class DashboardRenderer:
         file_url = f"file://{self.settings.test_html_path.absolute()}"
         self.logger.info(f"Rendering integration test from: {file_url}")
 
-        # Use a shorter timeout for tests
-        timeout = min(self.settings.browser_timeout, 15)
-        return self._run_chromium(file_url, timeout)
+        # Start persistent browser if not running
+        if not self.is_persistent_browser_running:
+            if not self.start_persistent_browser(file_url):
+                self.logger.error("Failed to start persistent browser")
+                return None
+        
+        # Take screenshot using persistent browser
+        return self.render_persistent_screenshot()
     
     def _render_custom(self):
         """Render custom dashboard layout."""
@@ -321,46 +332,3 @@ class DashboardRenderer:
             
         except Exception as e:
             self.logger.error(f"Error during async cleanup: {e}")
-
-    def _run_chromium(self, url, timeout):
-        """Render a URL using headless Chromium and return a PIL Image."""
-        try:
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                temp_path = temp_file.name
-
-            # Use shared chrome_args and add specific screenshot arguments
-            cmd = [self.browser_bin] + self.chrome_args + [
-                '--virtual-time-budget=10000',
-                f'--window-size={self.settings.browser_width},{self.settings.browser_height}',
-                f'--screenshot={temp_path}',
-                url
-            ]
-
-            self.logger.debug(f"Running command: {' '.join(cmd)}")
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
-
-            if result.returncode != 0:
-                self.logger.error(f"Chromium failed: {result.stderr}")
-                return None
-
-            if Path(temp_path).exists():
-                image = Image.open(temp_path)
-                Path(temp_path).unlink()
-                self.logger.info(f"Successfully rendered {url}")
-                return image
-            else:
-                self.logger.error("Screenshot file not created")
-                return None
-
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"Browser rendering timed out for {url}")
-            return None
-        except Exception as e:
-            self.logger.error(f"Error rendering URL {url}: {e}")
-            return None

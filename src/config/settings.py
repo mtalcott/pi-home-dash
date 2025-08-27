@@ -66,8 +66,8 @@ class Settings:
         "eink_partial_refresh_limit": 60,  # Number of partial refreshes before full refresh
         "eink_ghosting_prevention": True,
 
-        # Omni-EPD settings
-        "epd_device": "omni_epd.mock",  # Default to mock for dev; override on Pi via OMNI_EPD_DISPLAY
+        # Display driver settings
+        "display_type": "it8951",  # "it8951" for hardware, "mock" for testing
         "epd_mode": "bw",  # Display mode: "bw" or "gray16"
     }
 
@@ -99,7 +99,7 @@ class Settings:
         self.eink_partial_refresh_limit = self.DEFAULTS["eink_partial_refresh_limit"]
         self.eink_ghosting_prevention = self.DEFAULTS["eink_ghosting_prevention"]
 
-        self.epd_device = self.DEFAULTS["epd_device"]
+        self.display_type = self.DEFAULTS["display_type"]
         self.epd_mode = self.DEFAULTS["epd_mode"]
 
         # Integration test settings
@@ -108,9 +108,9 @@ class Settings:
         # Apply env overrides for settings that are actually used by the code
         self._apply_env_overrides()
 
-        # Create directories if they don't exist
-        self.cache_dir.mkdir(exist_ok=True, parents=True)
-        self.temp_dir.mkdir(exist_ok=True, parents=True)
+        # Create directories if they don't exist with proper permissions
+        self._ensure_directory_writable(self.cache_dir)
+        self._ensure_directory_writable(self.temp_dir)
 
         # Keep browser size in sync with display by default
         self.browser_width = self.display_width
@@ -137,8 +137,36 @@ class Settings:
         self.display_width = _get_env_int("DISPLAY_WIDTH", self.display_width)
         self.display_height = _get_env_int("DISPLAY_HEIGHT", self.display_height)
 
-        # Omni-EPD device selection (mock by default; override via OMNI_EPD_DISPLAY)
-        self.epd_device = _get_env_str("OMNI_EPD_DISPLAY", self.epd_device)
+        # Display driver type
+        self.display_type = _get_env_str("DISPLAY_TYPE", self.display_type)
+
+    def _ensure_directory_writable(self, directory: Path):
+        """Ensure directory exists and is writable by current user."""
+        try:
+            # Create directory if it doesn't exist
+            directory.mkdir(exist_ok=True, parents=True)
+            
+            # Test if we can write to the directory
+            test_file = directory / ".write_test"
+            try:
+                test_file.touch()
+                test_file.unlink()
+            except (PermissionError, OSError):
+                # If we can't write, try to fix permissions if possible
+                import stat
+                try:
+                    # Make directory writable by owner
+                    directory.chmod(stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                except (PermissionError, OSError):
+                    # If we can't fix permissions, log a warning but continue
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Directory {directory} may not be writable - some features may not work")
+                    
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not ensure directory {directory} is writable: {e}")
 
     def validate(self):
         """Validate configuration settings."""

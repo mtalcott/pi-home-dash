@@ -7,14 +7,16 @@ services:
       - ./logs:/var/log
       - ./test_results:/app/test_results
     environment:
-      DEBUG: ${DEBUG}
-      DAKBOARD_URL: ${DAKBOARD_URL}
-      DISPLAY: :99
-      PYTHONPATH: /app/src
-      UPDATE_INTERVAL: ${UPDATE_INTERVAL}
-      DISPLAY_WIDTH: ${DISPLAY_WIDTH}
-      DISPLAY_HEIGHT: ${DISPLAY_HEIGHT}
-      DASHBOARD_TYPE: ${DASHBOARD_TYPE}
+      # Existing variables
+      - DEBUG=${DEBUG}
+      - DAKBOARD_URL=${DAKBOARD_URL}
+      - DISPLAY=:99
+      - PYTHONPATH=/app/src
+      - UPDATE_INTERVAL=${UPDATE_INTERVAL}
+      - DISPLAY_WIDTH=${DISPLAY_WIDTH}
+      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT}
+      - DASHBOARD_TYPE=${DASHBOARD_TYPE}
+      - DISPLAY_TYPE=${DISPLAY_TYPE}
     networks:
       - pi-dash-network
 

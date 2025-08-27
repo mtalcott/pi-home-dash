@@ -17,18 +17,28 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config.settings import Settings
 from dashboard.renderer import DashboardRenderer
-from display.eink_driver import EInkDriver
+from dashboard.mock_renderer import MockDashboardRenderer
+from display.it8951_driver import IT8951Driver
 from monitoring.metrics_collector import MetricsCollector, PerformanceTimer
 
 
 class PiHomeDashboard:
     """Main dashboard application class."""
     
-    def __init__(self):
+    def __init__(self, test_mode=False):
         """Initialize the dashboard application."""
         self.settings = Settings()
-        self.renderer = DashboardRenderer(self.settings)
-        self.display = EInkDriver(self.settings)
+        self.test_mode = test_mode
+        
+        # Initialize renderer (mock or real based on settings)
+        if self.settings.dashboard_type == 'mock' or test_mode:
+            self.renderer = MockDashboardRenderer(self.settings)
+        else:
+            self.renderer = DashboardRenderer(self.settings)
+        
+        # Initialize display driver (IT8951 or mock based on settings)
+        # IT8951Driver handles mock mode internally based on settings.display_type
+        self.display = IT8951Driver(self.settings)
         
         # Initialize metrics collection
         self.metrics = MetricsCollector(self.settings.cache_dir)
@@ -42,6 +52,14 @@ class PiHomeDashboard:
         # Setup logging
         self._setup_logging()
         self.logger = logging.getLogger(__name__)
+        
+        # Log initialization info
+        if test_mode:
+            self.logger.info("Dashboard initialized in test mode")
+        
+        renderer_type = "Mock" if isinstance(self.renderer, MockDashboardRenderer) and self.renderer.is_mock_mode() else "Standard"
+        display_type = "Mock" if hasattr(self.display, 'mock_mode') and self.display.mock_mode else "Hardware"
+        self.logger.info(f"Renderer: {renderer_type}, Display: {display_type}")
         
     def _setup_logging(self):
         """Configure logging based on settings."""
@@ -260,12 +278,14 @@ def main():
                        help='Run in continuous mode (default)')
     parser.add_argument('--integration-test', action='store_true',
                        help='Run integration test with HTML rendering and virtual display')
-    parser.add_argument('--test-duration', type=int, default=60,
-                       help='Integration test duration in seconds (default: 60)')
-    parser.add_argument('--test-interval', type=int, default=3,
-                       help='Integration test update interval in seconds (default: 3)')
+    parser.add_argument('--duration', type=int, default=60,
+                       help='Test duration in seconds (default: 60)')
+    parser.add_argument('--interval', type=int, default=3,
+                       help='Test update interval in seconds (default: 3)')
+    parser.add_argument('--partial-refresh', action='store_true',
+                       help='Test partial refresh functionality')
     parser.add_argument('--collect-artifacts', action='store_true',
-                       help='Collect and validate test artifacts during integration test')
+                       help='Collect and validate test artifacts during tests')
     
     args = parser.parse_args()
     
@@ -282,8 +302,8 @@ def main():
             # Integration test mode
             from test.integration_test import run_integration_test
             results = run_integration_test(
-                duration=args.test_duration,
-                interval=args.test_interval,
+                duration=args.duration,
+                interval=args.interval,
                 collect_artifacts=args.collect_artifacts
             )
             success = results.get('success', False)
@@ -295,6 +315,34 @@ def main():
                     print("⚠️  Some validation criteria not met - check reports")
             else:
                 print(f"\n❌ Integration test FAILED: {results.get('error', 'Unknown error')}")
+            sys.exit(0 if success else 1)
+            
+        elif args.partial_refresh:
+            # Partial refresh test mode
+            dashboard.logger.info("Running partial refresh test...")
+            
+            # Test multiple partial refreshes followed by full refresh
+            for i in range(5):
+                dashboard.logger.info(f"Partial refresh test {i+1}/5")
+                success = dashboard.update_display(force_full_refresh=False)
+                if not success:
+                    print(f"❌ Partial refresh test failed at iteration {i+1}")
+                    sys.exit(1)
+                time.sleep(2)
+            
+            # Final full refresh
+            dashboard.logger.info("Testing full refresh after partial refreshes")
+            success = dashboard.update_display(force_full_refresh=True)
+            
+            if success:
+                print("✅ Partial refresh test PASSED")
+                # Print refresh statistics
+                if hasattr(dashboard.display, 'get_refresh_stats'):
+                    stats = dashboard.display.get_refresh_stats()
+                    print(f"Refresh stats: {stats}")
+            else:
+                print("❌ Partial refresh test FAILED")
+            
             sys.exit(0 if success else 1)
             
         elif args.test:

@@ -139,15 +139,18 @@ setup_environment() {
             cp "$HOME/pi-home-dash/.env.example" "$HOME/pi-home-dash/.env"
             log_info "Created .env file from .env.example"
         else
-            # Create basic .env file with Dockerfile defaults
+            # Create basic .env file with defaults
             cat > "$HOME/pi-home-dash/.env" << EOF
 # Pi Home Dashboard Environment Configuration
 PYTHONPATH=$HOME/pi-home-dash/src
 DISPLAY=:0
 DEBUG=false
-OMNI_EPD_DISPLAY=waveshare_epd.it8951
 UPDATE_INTERVAL=60
 DAKBOARD_URL=https://dakboard.com/screen/your-screen-id
+DASHBOARD_TYPE=dakboard
+DISPLAY_WIDTH=1872
+DISPLAY_HEIGHT=1404
+DISPLAY_TYPE=it8951
 EOF
             log_info "Created basic .env file"
         fi
@@ -201,7 +204,7 @@ create_systemd_service() {
     log_info "Creating systemd service..."
     
     # Create systemd service file
-    sudo tee /etc/systemd/system/pi-home-daseh.service > /dev/null << EOF
+    sudo tee /etc/systemd/system/pi-home-dash.service > /dev/null << EOF
 [Unit]
 Description=Pi Home Dashboard
 After=network.target
@@ -210,7 +213,6 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/pi-home-dash
-Environment=OMNI_EPD_DISPLAY=waveshare_epd.it8951
 EnvironmentFile=$HOME/pi-home-dash/.env
 ExecStart=$HOME/pi-home-dash/venv/bin/python src/main.py --continuous
 Restart=always

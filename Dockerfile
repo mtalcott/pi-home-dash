@@ -38,7 +38,6 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 COPY src/ ./src/
 COPY test_setup.py .
 COPY README.md .
-COPY omni-epd.ini .
 
 # Set environment variables using shared configuration
 ENV PYTHONPATH=/app/src
