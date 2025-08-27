@@ -45,7 +45,7 @@ class EInkTestUtility:
         # Initialize direct IT8951 access for advanced testing
         if IT8951_AVAILABLE and not self.driver.mock_mode:
             try:
-                self.direct_display = AutoEPDDisplay(vcom=-2.06, rotate=None, spi_hz=24000000)
+                self.direct_display = AutoEPDDisplay(vcom=-2.06, rotate=None, spi_hz=24000000, mirror=True)
                 if self.direct_display:
                     print(f"✅ Direct IT8951 access initialized")
                     print(f"   Display size: {self.direct_display.width}x{self.direct_display.height}")

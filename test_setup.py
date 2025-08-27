@@ -45,7 +45,7 @@ def test_configuration():
         from config.settings import Settings
         settings = Settings()
         print(f"✓ Settings loaded - Display: {settings.display_width}x{settings.display_height}")
-        print(f"✓ EPD Device: {settings.epd_device}")
+        print(f"✓ Display Type: {settings.display_type}")
         print(f"✓ EPD Mode: {settings.epd_mode}")
         return True
     except Exception as e:
