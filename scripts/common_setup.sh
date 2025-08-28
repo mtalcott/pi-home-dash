@@ -66,7 +66,6 @@ create_common_directories() {
     local base_dir="${1:-/app}"
     
     local dirs=(
-        "$base_dir/cache"
         "$base_dir/temp" 
         "$base_dir/logs"
         "$base_dir/test_results"

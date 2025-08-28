@@ -75,7 +75,6 @@ class Settings:
         """Initialize settings with defaults, then apply env overrides where used."""
         # Paths
         self.project_root = Path(__file__).resolve().parents[2]
-        self.cache_dir = self.project_root / "cache"
         self.temp_dir = self.project_root / "temp"
 
         # Initialize with defaults
@@ -109,7 +108,6 @@ class Settings:
         self._apply_env_overrides()
 
         # Create directories if they don't exist with proper permissions
-        self._ensure_directory_writable(self.cache_dir)
         self._ensure_directory_writable(self.temp_dir)
 
         # Keep browser size in sync with display by default

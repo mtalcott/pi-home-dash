@@ -41,7 +41,7 @@ class PiHomeDashboard:
         self.display = IT8951Driver(self.settings)
         
         # Initialize metrics collection
-        self.metrics = MetricsCollector(self.settings.cache_dir)
+        self.metrics = MetricsCollector()
         self.metrics.set_update_interval(self.settings.update_interval)
         
         # Persistent browser state
@@ -194,12 +194,12 @@ class PiHomeDashboard:
                 self.metrics.record_update_success()
                 
                 # Log performance summary periodically
-                if self.metrics.metrics.get('total_attempts', 0) % 10 == 0:
+                if self.metrics.total_attempts % 10 == 0:
                     summary = self.metrics.get_metrics_summary()
                     self.logger.info(f"Performance summary: "
-                                   f"Avg render: {summary['avg_render_time']:.1f}ms, "
-                                   f"Avg display: {summary['avg_display_time']:.1f}ms, "
-                                   f"Success rate: {summary['success_rate']:.1f}%")
+                                   f"Total attempts: {summary['total_attempts']}, "
+                                   f"Success rate: {summary['successful_attempts']}/{summary['total_attempts']}, "
+                                   f"Render attempts: {summary['render_attempts']}")
             else:
                 self.logger.error("Display update failed")
                 

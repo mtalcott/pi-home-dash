@@ -149,7 +149,6 @@ pi-home-dash/
 │       └── test_dashboard.html # HTML test file for dashboard rendering
 ├── test_setup.py           # Test setup and configuration
 ├── test_results/           # Test output directory (screenshots, reports, logs)
-├── cache/                  # Cache directory for temporary files
 ├── logs/                   # Application logs directory
 ├── temp/                   # Temporary files directory
 ├── requirements.txt        # Python dependencies
@@ -457,26 +456,37 @@ renderer.cleanup_persistent_browser()
 
 ## Performance Monitoring
 
-The Pi Home Dashboard includes comprehensive performance monitoring using netdata with custom collectors.
+The Pi Home Dashboard includes comprehensive performance monitoring using netdata with direct statsd integration for real-time metrics collection.
 
 ### Key Metrics Monitored
 
-- **Render Delay**: Dashboard rendering performance (persistent browser vs standard)
-- **Display Update Time**: E-ink display refresh performance (partial vs full)
-- **Browser Memory Usage**: Memory consumption of Chromium and Playwright
-- **Success Rates**: Overall reliability and error tracking
-- **System Health**: CPU temperature, memory usage, throttling events
+- **Render Performance**: Dashboard rendering times (persistent browser vs standard)
+- **Display Performance**: E-ink display update times (partial vs full refresh)
+- **Browser Memory**: Memory usage of Chromium and Playwright processes
+- **Success Rates**: Overall, render, and display success rates
+- **System Health**: CPU temperature, memory usage, disk usage
 - **Service Status**: Dashboard service and component availability
 
 ### Setup Monitoring
 
 ```bash
-# Install and configure netdata with custom collectors
+# Install and configure netdata with statsd collector
 ./scripts/setup_monitoring.sh
+
+# Test the monitoring setup
+python test_monitoring.py
 
 # Access monitoring dashboard
 # Navigate to: http://your-pi-ip:19999
+# Look for "pi_dashboard" charts in the netdata interface
 ```
+
+### How It Works
+
+The monitoring system uses a simple architecture leveraging statsd collector and Netdata:
+
+1. **Direct StatSD Integration**: Metrics are sent directly to netdata's built-in statsd collector
+2. **Automatic Chart Creation**: Netdata creates charts for all `pi_dashboard.*` metrics
 
 ### Performance Targets
 
@@ -488,13 +498,12 @@ The Pi Home Dashboard includes comprehensive performance monitoring using netdat
 
 ### Monitoring Features
 
-- Real-time performance dashboards
-- Automated health alerts
+- Real-time performance dashboards via netdata
+- Automated health alerts for critical metrics
 - Historical performance tracking
 - Mobile-friendly monitoring interface
-- Integration with system metrics
-
-For detailed monitoring documentation, see [MONITORING.md](MONITORING.md) after running the setup script.
+- Direct statsd integration for minimal overhead
+- Automatic metric aggregation and visualization
 
 ## Contributing
 

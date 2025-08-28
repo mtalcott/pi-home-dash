@@ -5,7 +5,6 @@ __pycache__/
 venv/
 
 # Project directories
-cache/
 .cache/
 temp/
 /logs/

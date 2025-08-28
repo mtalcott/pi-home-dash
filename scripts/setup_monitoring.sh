@@ -153,33 +153,6 @@ EOF
     log_success "Health monitoring configuration created"
 }
 
-# Create systemd service for metrics collection
-create_metrics_service() {
-    log_info "Creating metrics collection service..."
-    
-    # Create a simple service to ensure metrics directory exists and has proper permissions
-    sudo tee /etc/systemd/system/pi-dashboard-metrics.service > /dev/null << EOF
-[Unit]
-Description=Pi Home Dashboard Metrics Setup
-After=pi-home-dash.service
-Requires=pi-home-dash.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-User=root
-ExecStart=/bin/bash -c 'mkdir -p $PROJECT_ROOT/cache && chown -R $USER:$USER $PROJECT_ROOT/cache && chmod 755 $PROJECT_ROOT/cache'
-ExecStart=/bin/bash -c 'mkdir -p $PROJECT_ROOT/logs && chown -R $USER:$USER $PROJECT_ROOT/logs && chmod 755 $PROJECT_ROOT/logs'
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    
-    sudo systemctl daemon-reload
-    sudo systemctl enable pi-dashboard-metrics.service
-    
-    log_success "Metrics service created"
-}
 
 # Test the monitoring setup
 test_monitoring() {
@@ -193,22 +166,18 @@ test_monitoring() {
         return 1
     fi
     
-    # Test if custom collector is loaded
-    sleep 5  # Give netdata time to load collectors
-    
-    if curl -s "http://localhost:19999/api/v1/charts" | grep -q "pi_dashboard"; then
-        log_success "Pi Dashboard collector is loaded"
+    # Test if statsd port is listening
+    if netstat -ln 2>/dev/null | grep -q ":8125 "; then
+        log_success "StatSD port 8125 is listening"
     else
-        log_warning "Pi Dashboard collector not yet loaded (may take a few minutes)"
+        log_warning "StatSD port 8125 not yet listening (netdata may still be starting)"
     fi
     
-    # Test if metrics file can be created
-    if touch "$PROJECT_ROOT/cache/metrics.json" 2>/dev/null; then
-        log_success "Metrics file location is writable"
-        rm -f "$PROJECT_ROOT/cache/metrics.json"
+    # Test basic statsd connectivity
+    if echo "test.metric:1|c" | nc -u -w 1 localhost 8125 2>/dev/null; then
+        log_success "StatSD connectivity test passed"
     else
-        log_error "Cannot write to metrics file location"
-        return 1
+        log_warning "StatSD connectivity test failed (this is normal if netdata just started)"
     fi
     
     return 0
@@ -225,14 +194,10 @@ main() {
     install_netdata
     enable_statsd_collector
     create_dashboard_config
-    create_metrics_service
     
     # Restart netdata to load new configuration
     log_info "Restarting netdata to load new configuration..."
     sudo systemctl restart netdata
-    
-    # Start metrics service
-    sudo systemctl start pi-dashboard-metrics.service
     
     # Wait a moment for services to start
     sleep 3

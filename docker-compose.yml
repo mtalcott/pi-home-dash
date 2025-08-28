@@ -3,7 +3,6 @@ services:
     build: .
     volumes:
       - ./temp:/app/temp
-      - ./cache:/app/cache
       - ./logs:/var/log
       - ./test_results:/app/test_results
     environment:
