@@ -65,7 +65,16 @@ install_netdata() {
 enable_statsd_collector() {
     log_info "Enabling statsd collector for Pi Dashboard metrics..."
     
-    # Ensure statsd is enabled in netdata configuration
+    # Check if statsd section already exists
+    if sudo grep -q "^\[statsd\]" /etc/netdata/netdata.conf; then
+        log_info "StatSD section already exists in netdata.conf"
+        
+        # Remove all existing statsd sections to avoid duplicates
+        log_info "Removing duplicate statsd sections..."
+        sudo sed -i '/^\[statsd\]/,/^$/d' /etc/netdata/netdata.conf
+    fi
+    
+    # Add a single, clean statsd configuration
     sudo tee -a /etc/netdata/netdata.conf > /dev/null << 'EOF'
 
 [statsd]

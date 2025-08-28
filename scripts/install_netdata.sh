@@ -95,30 +95,6 @@ EOF
     log_success "Netdata configuration updated"
 }
 
-# Install Python dependencies for custom collectors
-install_python_deps() {
-    log_info "Installing Python dependencies for custom collectors..."
-    
-    # Install required Python packages for netdata collectors
-    sudo pip3 install psutil requests pillow
-    
-    log_success "Python dependencies installed"
-}
-
-# Create custom collectors directory
-setup_custom_collectors() {
-    log_info "Setting up custom collectors directory..."
-    
-    # Create directory for custom collectors
-    sudo mkdir -p /usr/libexec/netdata/python.d
-    sudo mkdir -p /etc/netdata/python.d
-    
-    # Set proper permissions
-    sudo chown -R netdata:netdata /usr/libexec/netdata/python.d
-    sudo chown -R netdata:netdata /etc/netdata/python.d
-    
-    log_success "Custom collectors directory created"
-}
 
 # Configure firewall for netdata (if ufw is enabled)
 configure_firewall() {
@@ -146,8 +122,6 @@ main() {
     fi
     
     configure_netdata
-    install_python_deps
-    setup_custom_collectors
     configure_firewall
     
     # Restart netdata to apply configuration
