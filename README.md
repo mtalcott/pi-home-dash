@@ -456,7 +456,7 @@ renderer.cleanup_persistent_browser()
 
 ## Performance Monitoring
 
-The Pi Home Dashboard includes comprehensive performance monitoring using netdata with direct statsd integration for real-time metrics collection.
+The Pi Home Dashboard includes comprehensive performance monitoring using **Grafana Cloud** for cloud-hosted dashboards, advanced alerting, and long-term data retention.
 
 ### Key Metrics Monitored
 
@@ -464,29 +464,60 @@ The Pi Home Dashboard includes comprehensive performance monitoring using netdat
 - **Display Performance**: E-ink display update times (partial vs full refresh)
 - **Browser Memory**: Memory usage of Chromium and Playwright processes
 - **Success Rates**: Overall, render, and display success rates
-- **System Health**: CPU temperature, memory usage, disk usage
+- **System Health**: CPU temperature, memory usage, disk usage, network stats
 - **Service Status**: Dashboard service and component availability
 
-### Setup Monitoring
+### Setup Grafana Cloud Monitoring
 
 ```bash
-# Install and configure netdata with statsd collector
-./scripts/setup_monitoring.sh
+# Set your Grafana Cloud credentials
+export GRAFANA_CLOUD_PROMETHEUS_URL='https://prometheus-prod-XX-prod-us-west-0.grafana.net/api/prom/push'
+export GRAFANA_CLOUD_PROMETHEUS_USER='your_prometheus_user_id'
+export GRAFANA_CLOUD_PROMETHEUS_PASSWORD='your_grafana_cloud_api_key'
 
-# Test the monitoring setup
-python test_monitoring.py
+# Optional: For log collection
+export GRAFANA_CLOUD_LOKI_URL='https://logs-prod-XXX.grafana.net/loki/api/v1/push'
+export GRAFANA_CLOUD_LOKI_USER='your_loki_user_id'
+export GRAFANA_CLOUD_LOKI_PASSWORD='your_grafana_cloud_api_key'
 
-# Access monitoring dashboard
-# Navigate to: http://your-pi-ip:19999
-# Look for "pi_dashboard" charts in the netdata interface
+# Install and configure Grafana Alloy agent
+./scripts/setup_grafana_cloud.sh
+```
+
+### Access Your Metrics
+
+1. Go to [Grafana Cloud](https://grafana.com/)
+2. Navigate to "Explore" and select your Prometheus data source
+3. Query metrics with job labels:
+   - `job="pi-home-dash"` (custom application metrics)
+   - `job="integrations/raspberrypi-node"` (system metrics)
+
+### Key Grafana Cloud Metrics
+
+```promql
+# Render performance
+rate(pi_dashboard_render_duration_seconds_sum[5m]) / rate(pi_dashboard_render_duration_seconds_count[5m])
+
+# Display update performance  
+rate(pi_dashboard_display_update_duration_seconds_sum[5m]) / rate(pi_dashboard_display_update_duration_seconds_count[5m])
+
+# Success rate
+rate(pi_dashboard_updates_total{status="success"}[5m]) / rate(pi_dashboard_updates_total[5m]) * 100
+
+# CPU temperature
+node_hwmon_temp_celsius
+
+# Memory usage
+(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
 ```
 
 ### How It Works
 
-The monitoring system uses a simple architecture leveraging statsd collector and Netdata:
+The monitoring system uses **Prometheus metrics** with **Grafana Alloy agent**:
 
-1. **Direct StatSD Integration**: Metrics are sent directly to netdata's built-in statsd collector
-2. **Automatic Chart Creation**: Netdata creates charts for all `pi_dashboard.*` metrics
+1. **Prometheus Instrumentation**: Application exposes metrics at `localhost:8000/metrics`
+2. **Grafana Alloy Agent**: Collects metrics and system data, sends to Grafana Cloud
+3. **Cloud Dashboards**: Professional visualizations accessible from anywhere
 
 ### Performance Targets
 
@@ -498,12 +529,19 @@ The monitoring system uses a simple architecture leveraging statsd collector and
 
 ### Monitoring Features
 
-- Real-time performance dashboards via netdata
-- Automated health alerts for critical metrics
-- Historical performance tracking
-- Mobile-friendly monitoring interface
-- Direct statsd integration for minimal overhead
-- Automatic metric aggregation and visualization
+- **Cloud-hosted dashboards** accessible from anywhere
+- **Advanced alerting** with multiple notification channels
+- **Long-term data retention** and historical analysis
+- **Professional visualization** and query capabilities
+- **Automatic Raspberry Pi integration** dashboards
+- **System and application metrics** in unified interface
+
+### Configuration Files
+
+- **Grafana Alloy**: `/etc/alloy/config.alloy` (agent configuration)
+- **Setup Script**: `scripts/setup_grafana_cloud.sh` (automated setup for fresh installations)
+- **Service**: `sudo systemctl status alloy` (service management)
+- **Logs**: `sudo journalctl -u alloy -f` (troubleshooting)
 
 ## Contributing
 
