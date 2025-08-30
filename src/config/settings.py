@@ -69,6 +69,10 @@ class Settings:
         # Display driver settings
         "display_type": "it8951",  # "it8951" for hardware, "mock" for testing
         "epd_mode": "bw",  # Display mode: "bw" or "gray16"
+
+        # Prometheus metrics settings
+        "prometheus_port": 8000,
+        "prometheus_enabled": True,
     }
 
     def __init__(self):
@@ -100,6 +104,10 @@ class Settings:
 
         self.display_type = self.DEFAULTS["display_type"]
         self.epd_mode = self.DEFAULTS["epd_mode"]
+
+        # Prometheus metrics settings
+        self.prometheus_port = self.DEFAULTS["prometheus_port"]
+        self.prometheus_enabled = self.DEFAULTS["prometheus_enabled"]
 
         # Integration test settings
         self.test_html_path: Optional[Path] = None  # Path to test HTML file for integration tests

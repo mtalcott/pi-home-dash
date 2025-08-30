@@ -19,7 +19,7 @@ from config.settings import Settings
 from dashboard.renderer import DashboardRenderer
 from dashboard.mock_renderer import MockDashboardRenderer
 from display.it8951_driver import IT8951Driver
-from monitoring.metrics_collector import MetricsCollector, PerformanceTimer
+from monitoring.prometheus_collector import PrometheusCollector, PrometheusTimer
 
 
 class PiHomeDashboard:
@@ -41,7 +41,9 @@ class PiHomeDashboard:
         self.display = IT8951Driver(self.settings)
         
         # Initialize metrics collection
-        self.metrics = MetricsCollector()
+        self.metrics = PrometheusCollector(port=self.settings.prometheus_port)
+        if self.settings.prometheus_enabled:
+            self.metrics.start_server()
         self.metrics.set_update_interval(self.settings.update_interval)
         
         # Persistent browser state
@@ -153,7 +155,7 @@ class PiHomeDashboard:
                         self.logger.warning("Failed to refresh browser page")
                 
                 # Take screenshot using persistent browser with timing
-                with PerformanceTimer(self.metrics, 'render', render_type='persistent_browser'):
+                with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
                     dashboard_image = self.renderer.render_persistent_screenshot()
                     self.browser_refresh_count += 1
                 
@@ -166,42 +168,41 @@ class PiHomeDashboard:
                         self.persistent_browser_enabled = True
                         self.browser_refresh_count = 0
                         # Try screenshot again with newly initialized browser
-                        with PerformanceTimer(self.metrics, 'render', render_type='persistent_browser'):
+                        with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
                             dashboard_image = self.renderer.render_persistent_screenshot()
                             self.browser_refresh_count += 1
                     
                     if dashboard_image is None:
                         self.logger.error("Failed to render dashboard after persistent browser retry")
+                        self.metrics.record_update_failure()
                         return False
             else:
                 # Use standard rendering for non-DAKboard or when persistent browser is not available
-                with PerformanceTimer(self.metrics, 'render', render_type='standard'):
+                with PrometheusTimer(self.metrics, 'render', render_type='standard'):
                     dashboard_image = self.renderer.render()
             
             if dashboard_image is None:
                 self.logger.error("Failed to render dashboard content")
+                self.metrics.record_update_failure()
                 return False
             
             # Update display with performance timing
             self.logger.info("Updating e-ink display...")
             refresh_type = 'full' if force_full_refresh else 'partial'
             
-            with PerformanceTimer(self.metrics, 'display_update', refresh_type=refresh_type):
+            with PrometheusTimer(self.metrics, 'display_update', refresh_type=refresh_type):
                 success = self.display.update(dashboard_image, force_full_refresh)
             
             if success:
                 self.logger.info("Display update completed successfully")
                 self.metrics.record_update_success()
                 
-                # Log performance summary periodically
-                if self.metrics.total_attempts % 10 == 0:
-                    summary = self.metrics.get_metrics_summary()
-                    self.logger.info(f"Performance summary: "
-                                   f"Total attempts: {summary['total_attempts']}, "
-                                   f"Success rate: {summary['successful_attempts']}/{summary['total_attempts']}, "
-                                   f"Render attempts: {summary['render_attempts']}")
+                # Log performance summary periodically (simplified for Prometheus)
+                summary = self.metrics.get_metrics_summary()
+                self.logger.info(f"Performance summary: {summary}")
             else:
                 self.logger.error("Display update failed")
+                self.metrics.record_update_failure()
                 
             return success
             
