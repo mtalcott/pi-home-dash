@@ -6,7 +6,7 @@ Provides direct control over IT8951 controller for enhanced partial refresh capa
 import logging
 import time
 import os
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from typing import Optional, Tuple, Union
 
 try:
@@ -355,3 +355,267 @@ class IT8951Driver:
             'mock_mode': self.mock_mode,
             'supports_partial_refresh': self.supports_partial_refresh
         }
+    
+    # Utility methods for creating display content
+    
+    def _load_font(self, size: int, bold: bool = False) -> ImageFont.ImageFont:
+        """Load a system font with fallback to default."""
+        font_paths = [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/liberation/LiberationSans.ttf',
+            '/System/Library/Fonts/Arial.ttf',  # macOS
+            'C:/Windows/Fonts/arial.ttf'  # Windows
+        ]
+        
+        for font_path in font_paths:
+            try:
+                return ImageFont.truetype(font_path, size)
+            except (OSError, IOError):
+                continue
+        
+        # Fall back to default font
+        return ImageFont.load_default()
+    
+    def create_text_image(self, text: str, font_size: int = 24, center: bool = True, 
+                         add_timestamp: bool = True) -> Image.Image:
+        """Create an image with text content.
+        
+        Args:
+            text: Text to display
+            font_size: Font size for main text
+            center: Whether to center the text
+            add_timestamp: Whether to add timestamp in corner
+            
+        Returns:
+            PIL Image with text content
+        """
+        # Create white background (grayscale for e-ink)
+        image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
+        draw = ImageDraw.Draw(image)
+        
+        # Load font
+        font = self._load_font(font_size, bold=True)
+        
+        # Calculate text position
+        if center:
+            # Get text bounding box
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            x = (self.settings.display_width - text_width) // 2
+            y = (self.settings.display_height - text_height) // 2
+        else:
+            x, y = 20, 20
+        
+        # Draw text (black on white for e-ink)
+        draw.text((x, y), text, fill=0, font=font)
+        
+        # Add timestamp in corner if requested
+        if add_timestamp:
+            timestamp = time.strftime("%H:%M:%S")
+            small_font = self._load_font(12)
+            draw.text((10, self.settings.display_height - 25), timestamp, fill=0, font=small_font)
+        
+        return image
+    
+    def create_test_pattern(self, pattern_type: str = "grid") -> Image.Image:
+        """Create various test patterns for display testing.
+        
+        Args:
+            pattern_type: Type of pattern ("grid", "stripes", "checkerboard")
+            
+        Returns:
+            PIL Image with test pattern
+        """
+        # Create white background (grayscale for e-ink)
+        image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
+        draw = ImageDraw.Draw(image)
+        
+        if pattern_type == "grid":
+            # Draw grid pattern
+            step = 50
+            for x in range(0, self.settings.display_width, step):
+                draw.line([(x, 0), (x, self.settings.display_height)], fill=0, width=1)
+            for y in range(0, self.settings.display_height, step):
+                draw.line([(0, y), (self.settings.display_width, y)], fill=0, width=1)
+                
+        elif pattern_type == "stripes":
+            # Draw horizontal stripes
+            stripe_height = 20
+            for y in range(0, self.settings.display_height, stripe_height * 2):
+                draw.rectangle([0, y, self.settings.display_width, y + stripe_height], fill=0)
+                
+        elif pattern_type == "checkerboard":
+            # Draw checkerboard pattern
+            square_size = 30
+            for x in range(0, self.settings.display_width, square_size):
+                for y in range(0, self.settings.display_height, square_size):
+                    if (x // square_size + y // square_size) % 2:
+                        draw.rectangle([x, y, x + square_size, y + square_size], fill=0)
+        
+        # Add pattern label
+        font = self._load_font(16, bold=True)
+        draw.text((10, 10), f"Pattern: {pattern_type}", fill=128, font=font)  # Gray text
+        
+        return image
+    
+    def create_initializing_message(self, mode: str, timestamp: str) -> Image.Image:
+        """Create an initializing message image.
+        
+        Args:
+            mode: Display mode (e.g., "Dakboard", "Custom")
+            timestamp: Friendly timestamp string
+            
+        Returns:
+            PIL Image with initializing message
+        """
+        # Create white background (grayscale for e-ink)
+        image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
+        draw = ImageDraw.Draw(image)
+        
+        # Load fonts
+        font_large = self._load_font(24, bold=True)
+        font_small = self._load_font(16)
+        
+        # Calculate text positioning
+        title_text = "Initializing..."
+        mode_text = f"{mode} mode"
+        time_text = timestamp
+        
+        # Get text dimensions for centering
+        title_bbox = draw.textbbox((0, 0), title_text, font=font_large)
+        mode_bbox = draw.textbbox((0, 0), mode_text, font=font_small)
+        time_bbox = draw.textbbox((0, 0), time_text, font=font_small)
+        
+        title_width = title_bbox[2] - title_bbox[0]
+        mode_width = mode_bbox[2] - mode_bbox[0]
+        time_width = time_bbox[2] - time_bbox[0]
+        
+        # Center text horizontally and position vertically
+        center_x = self.settings.display_width // 2
+        start_y = self.settings.display_height // 2 - 40
+        
+        # Draw the text (black on white for e-ink)
+        draw.text((center_x - title_width // 2, start_y), title_text, fill=0, font=font_large)
+        draw.text((center_x - mode_width // 2, start_y + 35), mode_text, fill=0, font=font_small)
+        draw.text((center_x - time_width // 2, start_y + 60), time_text, fill=0, font=font_small)
+        
+        return image
+    
+    def display_text(self, text: str, font_size: int = 24, center: bool = True, 
+                    force_full_refresh: bool = False) -> bool:
+        """Display text on the e-ink display.
+        
+        Args:
+            text: Text to display
+            font_size: Font size
+            center: Whether to center the text
+            force_full_refresh: Whether to force full refresh
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            image = self.create_text_image(text, font_size, center)
+            return self.update(image, force_full_refresh=force_full_refresh)
+        except Exception as e:
+            self.logger.error(f"Error displaying text: {e}")
+            return False
+    
+    def display_test_pattern(self, pattern_type: str = "grid", 
+                           force_full_refresh: bool = True) -> bool:
+        """Display a test pattern on the e-ink display.
+        
+        Args:
+            pattern_type: Type of pattern to display
+            force_full_refresh: Whether to force full refresh
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            image = self.create_test_pattern(pattern_type)
+            return self.update(image, force_full_refresh=force_full_refresh)
+        except Exception as e:
+            self.logger.error(f"Error displaying test pattern: {e}")
+            return False
+    
+    def display_initializing_message(self, mode: str, timestamp: str) -> bool:
+        """Display an initializing message on the e-ink display.
+        
+        Args:
+            mode: Display mode
+            timestamp: Friendly timestamp string
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            image = self.create_initializing_message(mode, timestamp)
+            return self.update(image, force_full_refresh=True)
+        except Exception as e:
+            self.logger.error(f"Error displaying initializing message: {e}")
+            return False
+    
+    # Direct IT8951 access methods for advanced testing
+    
+    def direct_partial_refresh(self, image: Image.Image, 
+                             display_mode: Optional[str] = None) -> bool:
+        """Perform direct partial refresh using IT8951 library.
+        
+        Args:
+            image: PIL Image to display
+            display_mode: IT8951 display mode (defaults to DU for fast partial)
+            
+        Returns:
+            bool: True if successful
+        """
+        if not IT8951_AVAILABLE or self.mock_mode or not self.hardware_initialized:
+            self.logger.warning("Direct partial refresh not available")
+            return False
+        
+        try:
+            processed_image = self._process_image(image)
+            mode = getattr(constants.DisplayModes, display_mode or 'DU')
+            
+            self.display.frame_buf.paste(processed_image, (0, 0))
+            self.display.draw_partial(mode)
+            
+            self.partial_refresh_count += 1
+            self.logger.info(f"Direct partial refresh completed (mode: {display_mode or 'DU'})")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error in direct partial refresh: {e}")
+            return False
+    
+    def direct_full_refresh(self, image: Image.Image, 
+                          display_mode: Optional[str] = None) -> bool:
+        """Perform direct full refresh using IT8951 library.
+        
+        Args:
+            image: PIL Image to display
+            display_mode: IT8951 display mode (defaults to GC16 for full refresh)
+            
+        Returns:
+            bool: True if successful
+        """
+        if not IT8951_AVAILABLE or self.mock_mode or not self.hardware_initialized:
+            self.logger.warning("Direct full refresh not available")
+            return False
+        
+        try:
+            processed_image = self._process_image(image)
+            mode = getattr(constants.DisplayModes, display_mode or 'GC16')
+            
+            self.display.frame_buf.paste(processed_image, (0, 0))
+            self.display.draw_full(mode)
+            
+            self.partial_refresh_count = 0
+            self.logger.info(f"Direct full refresh completed (mode: {display_mode or 'GC16'})")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error in direct full refresh: {e}")
+            return False

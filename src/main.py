@@ -145,6 +145,47 @@ class PiHomeDashboard:
             self.logger.error(f"Failed to save persistent screenshot: {e}")
             return None
     
+    def _get_friendly_timestamp(self):
+        """Get a friendly formatted timestamp for display messages."""
+        now = datetime.now()
+        
+        # Format: "Monday, January 15th at 2:30 PM"
+        day_name = now.strftime("%A")
+        month_name = now.strftime("%B")
+        day = now.day
+        
+        # Add ordinal suffix to day
+        if 10 <= day % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        
+        time_str = now.strftime("%I:%M %p").lstrip("0")  # Remove leading zero from hour
+        
+        return f"{day_name}, {month_name} {day}{suffix} at {time_str}"
+    
+    def _show_initializing_message(self):
+        """Show initializing message with mode and friendly timestamp on the e-ink display."""
+        friendly_time = self._get_friendly_timestamp()
+        mode_display = self.settings.dashboard_type.title()
+        
+        # Log the initializing message
+        self.logger.info(f"Initializing {mode_display} at {friendly_time}...")
+        
+        try:
+            # Use the consolidated functionality from IT8951Driver
+            success = self.display.display_initializing_message(mode_display, friendly_time)
+            
+            if success:
+                self.logger.info("Initializing message displayed successfully")
+            else:
+                self.logger.warning("Failed to display initializing message")
+                
+        except Exception as e:
+            self.logger.error(f"Error displaying initializing message: {e}")
+            # Fall back to console message if display fails
+            print(f"🚀 Initializing {mode_display} at {friendly_time}...")
+    
     def update_display(self, force_full_refresh=False):
         """Update the e-ink display with current dashboard content."""
         # Record update attempt
@@ -274,6 +315,9 @@ class PiHomeDashboard:
     def run_continuous(self):
         """Run the dashboard in continuous mode with periodic updates."""
         self.logger.info("Starting continuous dashboard mode...")
+
+        # Show initializing message with mode and friendly timestamp
+        self._show_initializing_message()
 
         # Initial display update with alignment to minute boundary
         self.update_display(force_full_refresh=True)
