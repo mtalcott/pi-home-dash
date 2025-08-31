@@ -114,35 +114,6 @@ class PiHomeDashboard:
         self.logger.error(f"Failed to initialize persistent browser after {max_retries} attempts")
         return False
     
-    def _wait_until_top_of_minute(self, target_second=0):
-        """Wait until the specified second of the next minute.
-        
-        Args:
-            target_second: Target second within the minute (0-59). Default is 0 for top of minute.
-        """
-        now = datetime.now()
-        current_second = now.second
-        current_microsecond = now.microsecond
-        
-        # Calculate seconds until target
-        if current_second <= target_second:
-            # We're before the target second in the current minute
-            seconds_to_wait = target_second - current_second
-        else:
-            # We're past the target second, wait until target second of next minute
-            seconds_to_wait = (60 - current_second) + target_second
-        
-        # Subtract the microseconds to be more precise
-        seconds_to_wait -= current_microsecond / 1_000_000
-        
-        if seconds_to_wait > 0:
-            self.logger.info(f"Waiting {seconds_to_wait:.2f} seconds until :{target_second:02d} of the minute...")
-            time.sleep(seconds_to_wait)
-        
-        # Log the actual time we're taking the screenshot
-        actual_time = datetime.now()
-        self.logger.info(f"Taking screenshot at {actual_time.strftime('%H:%M:%S.%f')[:-3]}")
-    
     def _save_persistent_screenshot(self, image, timestamp=None):
         """Save a persistent screenshot with timestamp.
         
@@ -302,16 +273,13 @@ class PiHomeDashboard:
     
     def run_continuous(self):
         """Run the dashboard in continuous mode with periodic updates."""
-        self.logger.info("Starting continuous dashboard mode with top-of-minute timing...")
-        
-        # Initial display update
+        self.logger.info("Starting continuous dashboard mode...")
+
+        # Initial display update with alignment to minute boundary
         self.update_display(force_full_refresh=True)
         
         try:
             while True:
-                # Wait until close to the top of the next minute
-                self._wait_until_top_of_minute(target_second=0)
-                
                 # Calculate the next intended update time BEFORE starting the render process
                 # This ensures consistent timing regardless of processing duration
                 current_time = datetime.now()
