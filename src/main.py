@@ -11,6 +11,7 @@ import logging
 import sys
 import time
 from pathlib import Path
+from datetime import datetime, timedelta
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -112,6 +113,66 @@ class PiHomeDashboard:
         
         self.logger.error(f"Failed to initialize persistent browser after {max_retries} attempts")
         return False
+    
+    def _wait_until_top_of_minute(self, target_second=0):
+        """Wait until the specified second of the next minute.
+        
+        Args:
+            target_second: Target second within the minute (0-59). Default is 0 for top of minute.
+        """
+        now = datetime.now()
+        current_second = now.second
+        current_microsecond = now.microsecond
+        
+        # Calculate seconds until target
+        if current_second <= target_second:
+            # We're before the target second in the current minute
+            seconds_to_wait = target_second - current_second
+        else:
+            # We're past the target second, wait until target second of next minute
+            seconds_to_wait = (60 - current_second) + target_second
+        
+        # Subtract the microseconds to be more precise
+        seconds_to_wait -= current_microsecond / 1_000_000
+        
+        if seconds_to_wait > 0:
+            self.logger.info(f"Waiting {seconds_to_wait:.2f} seconds until :{target_second:02d} of the minute...")
+            time.sleep(seconds_to_wait)
+        
+        # Log the actual time we're taking the screenshot
+        actual_time = datetime.now()
+        self.logger.info(f"Taking screenshot at {actual_time.strftime('%H:%M:%S.%f')[:-3]}")
+    
+    def _save_persistent_screenshot(self, image, timestamp=None):
+        """Save a persistent screenshot with timestamp.
+        
+        Args:
+            image: PIL Image to save
+            timestamp: Optional datetime object. If None, uses current time.
+        """
+        if timestamp is None:
+            timestamp = datetime.now()
+        
+        # Create screenshots directory if it doesn't exist
+        screenshots_dir = self.settings.project_root / "screenshots"
+        screenshots_dir.mkdir(exist_ok=True)
+        
+        # Generate filename with timestamp
+        filename = f"dashboard_{timestamp.strftime('%Y%m%d_%H%M%S')}.png"
+        filepath = screenshots_dir / filename
+        
+        try:
+            image.save(filepath, "PNG")
+            self.logger.info(f"Persistent screenshot saved: {filepath}")
+            
+            # Also save as "latest.png" for easy access
+            latest_path = screenshots_dir / "latest.png"
+            image.save(latest_path, "PNG")
+            
+            return filepath
+        except Exception as e:
+            self.logger.error(f"Failed to save persistent screenshot: {e}")
+            return None
     
     def update_display(self, force_full_refresh=False):
         """Update the e-ink display with current dashboard content."""
@@ -241,20 +302,34 @@ class PiHomeDashboard:
     
     def run_continuous(self):
         """Run the dashboard in continuous mode with periodic updates."""
-        self.logger.info("Starting continuous dashboard mode...")
+        self.logger.info("Starting continuous dashboard mode with top-of-minute timing...")
         
         # Initial display update
         self.update_display(force_full_refresh=True)
         
         try:
             while True:
-                # Wait for next update interval
-                time.sleep(self.settings.update_interval)
+                # Wait until close to the top of the next minute
+                self._wait_until_top_of_minute(target_second=0)
                 
                 # Update display - let the eink_driver handle full vs partial refresh logic
                 # based on the partial refresh count
                 success = self.update_display(force_full_refresh=False)
-                    
+                
+                # Wait for the configured update interval, but ensure we align to minute boundaries
+                # If update_interval is less than 60 seconds, wait the remaining time in the minute
+                # If update_interval is 60+ seconds, wait the full interval
+                if self.settings.update_interval < 60:
+                    remaining_time = 60 - self.settings.update_interval
+                    if remaining_time > 0:
+                        self.logger.info(f"Waiting {remaining_time} seconds until next update cycle...")
+                        time.sleep(remaining_time)
+                else:
+                    # For intervals >= 60 seconds, wait the full interval
+                    # This will naturally align to top-of-minute timing
+                    self.logger.info(f"Waiting {self.settings.update_interval} seconds until next update...")
+                    time.sleep(self.settings.update_interval)
+                
         except KeyboardInterrupt:
             self.logger.info("Dashboard stopped by user")
         except Exception as e:
