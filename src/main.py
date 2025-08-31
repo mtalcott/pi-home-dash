@@ -118,96 +118,106 @@ class PiHomeDashboard:
         # Record update attempt
         self.metrics.record_update_attempt()
         
+        # Determine render and refresh types for metrics
+        refresh_type = 'full' if force_full_refresh else 'partial'
+        render_type = 'persistent_browser' if (self.settings.dashboard_type == "dakboard" and 
+                                             self.persistent_browser_enabled) else 'standard'
+        
         try:
             self.logger.info("Starting display update...")
             
-            # Initialize persistent browser if needed for DAKboard
-            if (self.settings.dashboard_type == "dakboard" and 
-                not self.persistent_browser_enabled and 
-                self.settings.dakboard_url):
+            # Wrap the entire render+display cycle with full cycle timing
+            with PrometheusTimer(self.metrics, 'full_cycle', render_type=render_type, refresh_type=refresh_type):
                 
-                self.logger.info("Initializing persistent browser for DAKboard...")
-                success = self._initialize_persistent_browser_with_retry()
-                if success:
-                    self.persistent_browser_enabled = True
-                    self.browser_refresh_count = 0
-                    self.logger.info("Persistent browser initialized successfully")
-                else:
-                    self.logger.error("Failed to initialize persistent browser after retries")
-                    return False
-            
-            # Render dashboard content with performance timing
-            self.logger.info("Rendering dashboard content...")
-            dashboard_image = None
-            
-            # Use persistent browser for DAKboard if available
-            if (self.settings.dashboard_type == "dakboard" and 
-                self.persistent_browser_enabled):
-                
-                # Check if we need to refresh the browser page
-                if self.browser_refresh_count >= self.max_renders_before_refresh:
-                    self.logger.info("Refreshing persistent browser page...")
-                    refresh_success = self.renderer.refresh_persistent_browser()
-                    if refresh_success:
-                        self.browser_refresh_count = 0
-                        self.logger.info("Browser page refreshed successfully")
-                    else:
-                        self.logger.warning("Failed to refresh browser page")
-                
-                # Take screenshot using persistent browser with timing
-                with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
-                    dashboard_image = self.renderer.render_persistent_screenshot()
-                    self.browser_refresh_count += 1
-                
-                # If screenshot fails, retry persistent browser initialization
-                if dashboard_image is None:
-                    self.logger.warning("Persistent browser screenshot failed, retrying initialization...")
-                    self.persistent_browser_enabled = False
+                # Initialize persistent browser if needed for DAKboard
+                if (self.settings.dashboard_type == "dakboard" and 
+                    not self.persistent_browser_enabled and 
+                    self.settings.dakboard_url):
+                    
+                    self.logger.info("Initializing persistent browser for DAKboard...")
                     success = self._initialize_persistent_browser_with_retry()
                     if success:
                         self.persistent_browser_enabled = True
                         self.browser_refresh_count = 0
-                        # Try screenshot again with newly initialized browser
-                        with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
-                            dashboard_image = self.renderer.render_persistent_screenshot()
-                            self.browser_refresh_count += 1
-                    
-                    if dashboard_image is None:
-                        self.logger.error("Failed to render dashboard after persistent browser retry")
-                        self.metrics.record_update_failure()
+                        self.logger.info("Persistent browser initialized successfully")
+                        # Update render type now that persistent browser is enabled
+                        render_type = 'persistent_browser'
+                    else:
+                        self.logger.error("Failed to initialize persistent browser after retries")
                         return False
-            else:
-                # Use standard rendering for non-DAKboard or when persistent browser is not available
-                with PrometheusTimer(self.metrics, 'render', render_type='standard'):
-                    dashboard_image = self.renderer.render()
-            
-            if dashboard_image is None:
-                self.logger.error("Failed to render dashboard content")
-                self.metrics.record_update_failure()
-                return False
-            
-            # Update display with performance timing
-            self.logger.info("Updating e-ink display...")
-            refresh_type = 'full' if force_full_refresh else 'partial'
-            
-            with PrometheusTimer(self.metrics, 'display_update', refresh_type=refresh_type):
-                success = self.display.update(dashboard_image, force_full_refresh)
-            
-            if success:
-                self.logger.info("Display update completed successfully")
-                self.metrics.record_update_success()
                 
-                # Log performance summary periodically (simplified for Prometheus)
-                summary = self.metrics.get_metrics_summary()
-                self.logger.info(f"Performance summary: {summary}")
-            else:
-                self.logger.error("Display update failed")
-                self.metrics.record_update_failure()
+                # Render dashboard content with performance timing
+                self.logger.info("Rendering dashboard content...")
+                dashboard_image = None
                 
-            return success
+                # Use persistent browser for DAKboard if available
+                if (self.settings.dashboard_type == "dakboard" and 
+                    self.persistent_browser_enabled):
+                    
+                    # Check if we need to refresh the browser page
+                    if self.browser_refresh_count >= self.max_renders_before_refresh:
+                        self.logger.info("Refreshing persistent browser page...")
+                        refresh_success = self.renderer.refresh_persistent_browser()
+                        if refresh_success:
+                            self.browser_refresh_count = 0
+                            self.logger.info("Browser page refreshed successfully")
+                        else:
+                            self.logger.warning("Failed to refresh browser page")
+                    
+                    # Take screenshot using persistent browser with timing
+                    with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
+                        dashboard_image = self.renderer.render_persistent_screenshot()
+                        self.browser_refresh_count += 1
+                    
+                    # If screenshot fails, retry persistent browser initialization
+                    if dashboard_image is None:
+                        self.logger.warning("Persistent browser screenshot failed, retrying initialization...")
+                        self.persistent_browser_enabled = False
+                        success = self._initialize_persistent_browser_with_retry()
+                        if success:
+                            self.persistent_browser_enabled = True
+                            self.browser_refresh_count = 0
+                            # Try screenshot again with newly initialized browser
+                            with PrometheusTimer(self.metrics, 'render', render_type='persistent_browser'):
+                                dashboard_image = self.renderer.render_persistent_screenshot()
+                                self.browser_refresh_count += 1
+                        
+                        if dashboard_image is None:
+                            self.logger.error("Failed to render dashboard after persistent browser retry")
+                            self.metrics.record_update_failure()
+                            return False
+                else:
+                    # Use standard rendering for non-DAKboard or when persistent browser is not available
+                    with PrometheusTimer(self.metrics, 'render', render_type='standard'):
+                        dashboard_image = self.renderer.render()
+                
+                if dashboard_image is None:
+                    self.logger.error("Failed to render dashboard content")
+                    self.metrics.record_update_failure()
+                    return False
+                
+                # Update display with performance timing
+                self.logger.info("Updating e-ink display...")
+                
+                with PrometheusTimer(self.metrics, 'display_update', refresh_type=refresh_type):
+                    success = self.display.update(dashboard_image, force_full_refresh)
+                
+                if success:
+                    self.logger.info("Display update completed successfully")
+                    self.metrics.record_update_success()
+                    
+                    # Log performance summary periodically (simplified for Prometheus)
+                    summary = self.metrics.get_metrics_summary()
+                    self.logger.info(f"Performance summary: {summary}")
+                else:
+                    self.logger.error("Display update failed")
+                    self.metrics.record_update_failure()
+                    
+                return success
             
         except Exception as e:
             self.logger.error(f"Error during display update: {e}")
+            self.metrics.record_update_failure()
             return False
     
     def test_display(self):

@@ -34,6 +34,12 @@ class PrometheusCollector:
             ['refresh_type']
         )
         
+        self.full_cycle_duration = Histogram(
+            'pi_dashboard_full_cycle_duration_seconds',
+            'Time taken for complete render+display update cycle',
+            ['render_type', 'refresh_type']
+        )
+        
         self.dashboard_updates_total = Counter(
             'pi_dashboard_updates_total',
             'Total number of dashboard update attempts',
@@ -131,6 +137,11 @@ class PrometheusCollector:
         self.display_update_duration.labels(refresh_type=refresh_type).observe(update_time_seconds)
         self.display_refresh_total.labels(refresh_type=refresh_type).inc()
         logger.debug(f"Recorded display update: {update_time_seconds:.3f}s (type: {refresh_type})")
+    
+    def record_full_cycle_time(self, cycle_time_seconds: float, render_type: str = 'standard', refresh_type: str = 'partial'):
+        """Record a full render+display update cycle time."""
+        self.full_cycle_duration.labels(render_type=render_type, refresh_type=refresh_type).observe(cycle_time_seconds)
+        logger.debug(f"Recorded full cycle time: {cycle_time_seconds:.3f}s (render: {render_type}, refresh: {refresh_type})")
     
     def record_update_attempt(self):
         """Record a dashboard update attempt."""
@@ -251,6 +262,11 @@ class PrometheusTimer:
             elif self.operation_type == 'display_update':
                 refresh_type = self.kwargs.get('refresh_type', 'partial')
                 self.collector.record_display_update_time(duration_seconds, refresh_type)
+            
+            elif self.operation_type == 'full_cycle':
+                render_type = self.kwargs.get('render_type', 'standard')
+                refresh_type = self.kwargs.get('refresh_type', 'partial')
+                self.collector.record_full_cycle_time(duration_seconds, render_type, refresh_type)
     
     def get_duration_seconds(self) -> Optional[float]:
         """Get the duration in seconds."""
