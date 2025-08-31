@@ -474,9 +474,9 @@ class IT8951Driver:
         image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
         draw = ImageDraw.Draw(image)
         
-        # Load fonts
-        font_large = self._load_font(24, bold=True)
-        font_small = self._load_font(16)
+        # Load fonts with larger sizes
+        font_large = self._load_font(96, bold=True)  # Increased from 24 to 96
+        font_small = self._load_font(72)             # Increased from 16 to 72
         
         # Calculate text positioning
         title_text = "Initializing..."
@@ -492,14 +492,14 @@ class IT8951Driver:
         mode_width = mode_bbox[2] - mode_bbox[0]
         time_width = time_bbox[2] - time_bbox[0]
         
-        # Center text horizontally and position vertically
+        # Center text horizontally and position vertically with adjusted spacing
         center_x = self.settings.display_width // 2
-        start_y = self.settings.display_height // 2 - 40
+        start_y = self.settings.display_height // 2 - 120  # Adjusted for larger fonts
         
-        # Draw the text (black on white for e-ink)
+        # Draw the text (black on white for e-ink) with increased spacing
         draw.text((center_x - title_width // 2, start_y), title_text, fill=0, font=font_large)
-        draw.text((center_x - mode_width // 2, start_y + 35), mode_text, fill=0, font=font_small)
-        draw.text((center_x - time_width // 2, start_y + 60), time_text, fill=0, font=font_small)
+        draw.text((center_x - mode_width // 2, start_y + 120), mode_text, fill=0, font=font_small)  # Increased spacing from 35 to 120
+        draw.text((center_x - time_width // 2, start_y + 200), time_text, fill=0, font=font_small)  # Increased spacing from 60 to 200
         
         return image
     
