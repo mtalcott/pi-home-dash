@@ -312,23 +312,36 @@ class PiHomeDashboard:
                 # Wait until close to the top of the next minute
                 self._wait_until_top_of_minute(target_second=0)
                 
+                # Calculate the next intended update time BEFORE starting the render process
+                # This ensures consistent timing regardless of processing duration
+                current_time = datetime.now()
+                if self.settings.update_interval < 60:
+                    # For sub-minute intervals, next update is at the next minute boundary
+                    next_update_time = current_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
+                else:
+                    # For intervals >= 60 seconds, next update is current time + interval
+                    next_update_time = current_time + timedelta(seconds=self.settings.update_interval)
+                
+                self.logger.info(f"Next update scheduled for: {next_update_time.strftime('%H:%M:%S')}")
+                
                 # Update display - let the eink_driver handle full vs partial refresh logic
                 # based on the partial refresh count
                 success = self.update_display(force_full_refresh=False)
                 
-                # Wait for the configured update interval, but ensure we align to minute boundaries
-                # If update_interval is less than 60 seconds, wait the remaining time in the minute
-                # If update_interval is 60+ seconds, wait the full interval
-                if self.settings.update_interval < 60:
-                    remaining_time = 60 - self.settings.update_interval
-                    if remaining_time > 0:
-                        self.logger.info(f"Waiting {remaining_time} seconds until next update cycle...")
-                        time.sleep(remaining_time)
+                # Record timing offset metric after display update completes
+                actual_completion_time = datetime.now()
+                timing_offset_seconds = (actual_completion_time - next_update_time).total_seconds()
+                self.metrics.record_update_timing_offset(timing_offset_seconds)
+                
+                # Calculate remaining time until next intended update
+                time_until_next_update = (next_update_time - actual_completion_time).total_seconds()
+                
+                # Only sleep if there's time remaining (avoid negative sleep)
+                if time_until_next_update > 0:
+                    self.logger.info(f"Update completed, waiting {time_until_next_update:.2f} seconds until next update...")
+                    time.sleep(time_until_next_update)
                 else:
-                    # For intervals >= 60 seconds, wait the full interval
-                    # This will naturally align to top-of-minute timing
-                    self.logger.info(f"Waiting {self.settings.update_interval} seconds until next update...")
-                    time.sleep(self.settings.update_interval)
+                    self.logger.warning(f"Update took longer than expected, next update is {abs(time_until_next_update):.2f} seconds overdue")
                 
         except KeyboardInterrupt:
             self.logger.info("Dashboard stopped by user")

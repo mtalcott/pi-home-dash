@@ -103,6 +103,13 @@ class PrometheusCollector:
             'Configured update interval in seconds'
         )
         
+        # Update timing offset metric
+        self.update_timing_offset_seconds = Histogram(
+            'pi_dashboard_update_timing_offset_seconds',
+            'Offset between intended update time and actual update completion time',
+            buckets=(-5.0, -2.0, -1.0, -0.5, -0.1, 0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, float('inf'))
+        )
+        
         logger.info(f"PrometheusCollector initialized for port {port}")
     
     def start_server(self):
@@ -162,6 +169,21 @@ class PrometheusCollector:
         """Set the expected update interval."""
         self.update_interval_seconds.set(interval_seconds)
         logger.debug(f"Set update interval: {interval_seconds}s")
+    
+    def record_update_timing_offset(self, offset_seconds: float):
+        """Record the timing offset between intended and actual update completion time.
+        
+        Args:
+            offset_seconds: Positive values indicate update completed late,
+                          negative values indicate update completed early.
+        """
+        self.update_timing_offset_seconds.observe(offset_seconds)
+        if offset_seconds > 0:
+            logger.debug(f"Update completed {offset_seconds:.2f}s late")
+        elif offset_seconds < 0:
+            logger.debug(f"Update completed {abs(offset_seconds):.2f}s early")
+        else:
+            logger.debug("Update completed exactly on time")
     
     def send_system_metrics(self, cpu_temp: Optional[float] = None, 
                            memory_usage: Optional[float] = None,
