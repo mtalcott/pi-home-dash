@@ -8,8 +8,9 @@ import logging
 import tempfile
 import time
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from typing import Optional
+from datetime import datetime
 
 from playwright.async_api import async_playwright, BrowserContext, Page
 
@@ -59,14 +60,21 @@ class DashboardRenderer:
     def render(self):
         """Render the dashboard and return a PIL Image."""
         try:
+            image = None
             if self.settings.dashboard_type == "dakboard":
-                return self._render_dakboard()
+                image = self._render_dakboard()
             elif self.settings.dashboard_type == "custom":
-                return self._render_custom()
+                image = self._render_custom()
             elif self.settings.dashboard_type == "integration_test":
-                return self._render_integration_test()
+                image = self._render_integration_test()
             else:
                 raise ValueError(f"Unknown dashboard type: {self.settings.dashboard_type}")
+            
+            # Add timestamp overlay if debug mode is enabled and we have an image
+            if image and self.settings.debug_mode:
+                image = self._add_timestamp_overlay(image)
+                
+            return image
                 
         except Exception as e:
             self.logger.error(f"Error rendering dashboard: {e}")
@@ -259,6 +267,11 @@ class DashboardRenderer:
             if success and temp_path.exists():
                 image = Image.open(temp_path)
                 temp_path.unlink()  # Clean up temp file
+                
+                # Add timestamp overlay if debug mode is enabled
+                if self.settings.debug_mode:
+                    image = self._add_timestamp_overlay(image)
+                
                 return image
             else:
                 self.logger.error("Failed to take persistent screenshot")
@@ -268,6 +281,76 @@ class DashboardRenderer:
             self.logger.error(f"Error taking persistent screenshot: {e}")
             return None
     
+    def _add_timestamp_overlay(self, image: Image.Image) -> Image.Image:
+        """Add a timestamp overlay to the bottom right corner of the image when debug mode is enabled.
+        
+        Args:
+            image: PIL Image to add timestamp to
+            
+        Returns:
+            PIL Image with timestamp overlay added
+        """
+        try:
+            # Create a copy of the image to avoid modifying the original
+            img_with_overlay = image.copy()
+            draw = ImageDraw.Draw(img_with_overlay)
+            
+            # Get current timestamp
+            now = datetime.now()
+            timestamp_text = now.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Try to load a font, fall back to default if not available
+            try:
+                # Try to use a system font - adjust size based on display dimensions
+                font_size = max(12, min(24, self.settings.display_width // 80))  # Scale font with display size
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+            except (OSError, IOError):
+                try:
+                    # Fall back to default PIL font
+                    font = ImageFont.load_default()
+                except:
+                    # If all else fails, use None (PIL will use built-in font)
+                    font = None
+            
+            # Calculate text dimensions
+            if font:
+                bbox = draw.textbbox((0, 0), timestamp_text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+            else:
+                # Estimate dimensions for default font
+                text_width = len(timestamp_text) * 6
+                text_height = 11
+            
+            # Calculate position for bottom right corner
+            buffer_pixels = 50
+            x = self.settings.display_width - text_width - buffer_pixels
+            y = self.settings.display_height - text_height - buffer_pixels
+            
+            # Ensure position is not negative
+            x = max(0, x)
+            y = max(0, y)
+            
+            # Draw a semi-transparent background rectangle for better readability
+            padding = 4
+            bg_x1 = x - padding
+            bg_y1 = y - padding
+            bg_x2 = x + text_width + padding
+            bg_y2 = y + text_height + padding
+            
+            # Draw white background with slight transparency effect (using a solid color for e-ink)
+            draw.rectangle([bg_x1, bg_y1, bg_x2, bg_y2], fill=(255, 255, 255), outline=(0, 0, 0), width=1)
+            
+            # Draw the timestamp text in black
+            draw.text((x, y), timestamp_text, fill=(0, 0, 0), font=font)
+            
+            return img_with_overlay
+            
+        except Exception as e:
+            self.logger.error(f"Failed to add timestamp overlay: {e}")
+            # Return original image if overlay fails
+            return image
+
     async def _take_screenshot_async(self, output_path: Path) -> bool:
         """Async method to take screenshot."""
         try:
