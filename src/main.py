@@ -186,6 +186,58 @@ class PiHomeDashboard:
             # Fall back to console message if display fails
             print(f"🚀 Initializing {mode_display} at {friendly_time}...")
     
+    def _calculate_next_update_time(self, current_time):
+        """Calculate the next update time, aligning to minute boundaries for round minute intervals.
+        
+        Args:
+            current_time: datetime object representing the current time
+            
+        Returns:
+            datetime object representing when the next update should occur
+        """
+        interval_seconds = self.settings.update_interval
+        
+        # Check if the interval is a round minute (60, 120, 300, etc.)
+        if interval_seconds >= 60 and interval_seconds % 60 == 0:
+            # For round minute intervals, align to the top of the minute
+            interval_minutes = interval_seconds // 60
+            
+            # Get the next minute boundary
+            next_minute = current_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
+            
+            # For intervals longer than 1 minute, find the next aligned time
+            if interval_minutes > 1:
+                # Calculate how many minutes past the hour we are
+                minutes_past_hour = next_minute.minute
+                
+                # Find the next time that aligns with our interval
+                # For example, with 5-minute intervals (300s), align to :00, :05, :10, etc.
+                next_aligned_minute = ((minutes_past_hour // interval_minutes) + 1) * interval_minutes
+                
+                if next_aligned_minute >= 60:
+                    # Roll over to the next hour
+                    next_update_time = next_minute.replace(minute=0) + timedelta(hours=1, minutes=next_aligned_minute - 60)
+                else:
+                    next_update_time = next_minute.replace(minute=next_aligned_minute)
+            else:
+                # For 1-minute intervals, just use the next minute boundary
+                next_update_time = next_minute
+                
+            self.logger.info(f"Using minute-aligned scheduling: {interval_seconds}s interval aligns to {next_update_time.strftime('%H:%M:%S')}")
+            
+        else:
+            # For non-round minute intervals, use the original logic
+            if interval_seconds < 60:
+                # For sub-minute intervals, next update is at the next minute boundary
+                next_update_time = current_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
+                self.logger.info(f"Sub-minute interval ({interval_seconds}s), aligning to next minute boundary")
+            else:
+                # For intervals >= 60 seconds that aren't round minutes, use current time + interval
+                next_update_time = current_time + timedelta(seconds=interval_seconds)
+                self.logger.info(f"Non-round minute interval ({interval_seconds}s), using standard scheduling")
+        
+        return next_update_time
+    
     def update_display(self, force_full_refresh=False):
         """Update the e-ink display with current dashboard content."""
         # Record update attempt
@@ -327,12 +379,7 @@ class PiHomeDashboard:
                 # Calculate the next intended update time BEFORE starting the render process
                 # This ensures consistent timing regardless of processing duration
                 current_time = datetime.now()
-                if self.settings.update_interval < 60:
-                    # For sub-minute intervals, next update is at the next minute boundary
-                    next_update_time = current_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
-                else:
-                    # For intervals >= 60 seconds, next update is current time + interval
-                    next_update_time = current_time + timedelta(seconds=self.settings.update_interval)
+                next_update_time = self._calculate_next_update_time(current_time)
                 
                 self.logger.info(f"Next update scheduled for: {next_update_time.strftime('%H:%M:%S')}")
                 
