@@ -187,14 +187,14 @@ class PiHomeDashboard:
             browser_processes = 0
             browser_memory_mb = 0.0
             
-            # Look for chromium processes (all browser processes include 'chromium')
+            # Look for headless_shell processes (Playwright browser processes)
             for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
                 try:
                     proc_info = proc.info
                     proc_name = proc_info['name'].lower()
                     
-                    # Check if this is a chromium process
-                    if 'chromium' in proc_name:
+                    # Check if this is a headless_shell process (Playwright browser)
+                    if 'headless_shell' in proc_name:
                         browser_processes += 1
                         # Convert bytes to MB
                         memory_bytes = proc_info['memory_info'].rss
