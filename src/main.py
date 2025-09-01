@@ -149,20 +149,14 @@ class PiHomeDashboard:
         """Get a friendly formatted timestamp for display messages."""
         now = datetime.now()
         
-        # Format: "Monday, January 15th at 2:30 PM"
+        # Format: "Monday, January 15 at 2:30:45 PM"
         day_name = now.strftime("%A")
         month_name = now.strftime("%B")
         day = now.day
         
-        # Add ordinal suffix to day
-        if 10 <= day % 100 <= 20:
-            suffix = "th"
-        else:
-            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        time_str = now.strftime("%I:%M:%S %p")
         
-        time_str = now.strftime("%I:%M %p").lstrip("0")  # Remove leading zero from hour
-        
-        return f"{day_name}, {month_name} {day}{suffix} at {time_str}"
+        return f"{day_name}, {month_name} {day} at {time_str}"
     
     def _show_initializing_message(self):
         """Show initializing message with mode and friendly timestamp on the e-ink display."""
