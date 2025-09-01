@@ -10,6 +10,7 @@ import argparse
 import logging
 import sys
 import time
+import psutil
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -180,6 +181,42 @@ class PiHomeDashboard:
             # Fall back to console message if display fails
             print(f"🚀 Initializing {mode_display} at {friendly_time}...")
     
+    def _collect_browser_metrics(self):
+        """Collect and send browser metrics to Prometheus."""
+        try:
+            browser_processes = 0
+            browser_memory_mb = 0.0
+            
+            # Look for chromium processes (all browser processes include 'chromium')
+            for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+                try:
+                    proc_info = proc.info
+                    proc_name = proc_info['name'].lower()
+                    
+                    # Check if this is a chromium process
+                    if 'chromium' in proc_name:
+                        browser_processes += 1
+                        # Convert bytes to MB
+                        memory_bytes = proc_info['memory_info'].rss
+                        browser_memory_mb += memory_bytes / (1024 * 1024)
+                        
+                        self.logger.debug(f"Found browser process: {proc_info['name']} (PID: {proc_info['pid']}, Memory: {memory_bytes / (1024 * 1024):.1f}MB)")
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    # Process disappeared or access denied, skip it
+                    continue
+            
+            # Send browser metrics
+            self.metrics.send_browser_metrics(
+                browser_memory=browser_memory_mb,
+                browser_processes=browser_processes
+            )
+            
+            self.logger.debug(f"Browser metrics collected - Processes: {browser_processes}, Memory: {browser_memory_mb:.1f}MB")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to collect browser metrics: {e}")
+    
     def _calculate_next_update_time(self, current_time):
         """Calculate the next update time, aligning to minute boundaries for round minute intervals.
         
@@ -324,6 +361,9 @@ class PiHomeDashboard:
                 if success:
                     self.logger.info("Display update completed successfully")
                     self.metrics.record_update_success()
+                    
+                    # Collect browser metrics after successful update
+                    self._collect_browser_metrics()
                     
                     # Log performance summary periodically (simplified for Prometheus)
                     summary = self.metrics.get_metrics_summary()
