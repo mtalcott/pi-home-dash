@@ -14,14 +14,20 @@ from datetime import datetime
 
 from playwright.async_api import async_playwright, BrowserContext, Page
 
+# Import time validator
+from monitoring.time_validator import TimeValidator
+
 
 class DashboardRenderer:
     """Main dashboard rendering class."""
     
-    def __init__(self, settings):
+    def __init__(self, settings, prometheus_collector=None):
         """Initialize the dashboard renderer."""
         self.settings = settings
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize time validator
+        self.time_validator = TimeValidator(prometheus_collector)
         
         # Persistent browser state
         self.playwright = None
@@ -355,6 +361,12 @@ class DashboardRenderer:
         """Async method to take screenshot."""
         try:
             start_time = time.time()
+            
+            # Validate time before taking screenshot
+            if self.page:
+                validation_result = self.time_validator.validate_time_from_page(self.page)
+                self.time_validator.log_validation_summary(validation_result)
+            
             await self.page.screenshot(path=str(output_path), full_page=True)
             duration = time.time() - start_time
             self.logger.info(f"Persistent screenshot taken in {duration:.1f}s")

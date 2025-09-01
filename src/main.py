@@ -32,21 +32,21 @@ class PiHomeDashboard:
         self.settings = Settings()
         self.test_mode = test_mode
         
-        # Initialize renderer (mock or real based on settings)
-        if self.settings.dashboard_type == 'mock' or test_mode:
-            self.renderer = MockDashboardRenderer(self.settings)
-        else:
-            self.renderer = DashboardRenderer(self.settings)
-        
-        # Initialize display driver (IT8951 or mock based on settings)
-        # IT8951Driver handles mock mode internally based on settings.display_type
-        self.display = IT8951Driver(self.settings)
-        
-        # Initialize metrics collection
+        # Initialize metrics collection first
         self.metrics = PrometheusCollector(port=self.settings.prometheus_port)
         if self.settings.prometheus_enabled:
             self.metrics.start_server()
         self.metrics.set_update_interval(self.settings.update_interval)
+        
+        # Initialize renderer (mock or real based on settings)
+        if self.settings.dashboard_type == 'mock' or test_mode:
+            self.renderer = MockDashboardRenderer(self.settings)
+        else:
+            self.renderer = DashboardRenderer(self.settings, self.metrics)
+        
+        # Initialize display driver (IT8951 or mock based on settings)
+        # IT8951Driver handles mock mode internally based on settings.display_type
+        self.display = IT8951Driver(self.settings)
         
         # Persistent browser state
         self.persistent_browser_enabled = False
