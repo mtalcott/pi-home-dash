@@ -110,6 +110,24 @@ class PrometheusCollector:
             buckets=(-5.0, -2.0, -1.0, -0.5, -0.1, 0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, float('inf'))
         )
         
+        # Time validation metrics
+        self.time_validation_total = Counter(
+            'pi_dashboard_time_validation_total',
+            'Total number of time validations performed',
+            ['status']
+        )
+        
+        self.time_offset_minutes = Histogram(
+            'pi_dashboard_time_offset_minutes',
+            'Time offset between displayed and system time in minutes',
+            buckets=(0, 1, 2, 5, 10, float('inf'))
+        )
+        
+        self.time_validation_warnings = Counter(
+            'pi_dashboard_time_validation_warnings_total',
+            'Total number of time validation warnings issued'
+        )
+        
         logger.info(f"PrometheusCollector initialized for port {port}")
     
     def start_server(self):
@@ -184,6 +202,29 @@ class PrometheusCollector:
             logger.debug(f"Update completed {abs(offset_seconds):.2f}s early")
         else:
             logger.debug("Update completed exactly on time")
+    
+    def record_time_validation(self, status: str):
+        """Record a time validation attempt.
+        
+        Args:
+            status: 'success', 'warning', or 'error'
+        """
+        self.time_validation_total.labels(status=status).inc()
+        logger.debug(f"Recorded time validation: {status}")
+    
+    def record_time_offset(self, offset_minutes: float):
+        """Record the time offset between displayed and system time.
+        
+        Args:
+            offset_minutes: Time offset in minutes (positive = displayed time is ahead)
+        """
+        self.time_offset_minutes.observe(offset_minutes)
+        logger.debug(f"Recorded time offset: {offset_minutes:.1f} minutes")
+    
+    def record_time_validation_warning(self):
+        """Record a time validation warning."""
+        self.time_validation_warnings.inc()
+        logger.debug("Recorded time validation warning")
     
     def send_system_metrics(self, cpu_temp: Optional[float] = None, 
                            memory_usage: Optional[float] = None,

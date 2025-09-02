@@ -18,25 +18,6 @@ class TimeValidator:
         self.logger = logging.getLogger(__name__)
         self.prometheus_collector = prometheus_collector
         
-        # Prometheus metrics for time validation
-        if prometheus_collector:
-            self.time_validation_total = Counter(
-                'pi_dashboard_time_validation_total',
-                'Total number of time validations performed',
-                ['status']
-            )
-            
-            self.time_offset_minutes = Histogram(
-                'pi_dashboard_time_offset_minutes',
-                'Time offset between displayed and system time in minutes',
-                buckets=(-10, -5, -2, -1, 0, 1, 2, 5, 10, float('inf'))
-            )
-            
-            self.time_validation_warnings = Counter(
-                'pi_dashboard_time_validation_warnings_total',
-                'Total number of time validation warnings issued'
-            )
-        
         # 12-hour format patterns only (no seconds)
         self.time_pattern = re.compile(r'(\d{1,2}):(\d{2})\s*(AM|PM)', re.IGNORECASE)
         
@@ -71,22 +52,22 @@ class TimeValidator:
             # Record metrics
             if self.prometheus_collector:
                 if validation_result.get('error'):
-                    self.time_validation_total.labels(status='error').inc()
+                    self.prometheus_collector.record_time_validation('error')
                 elif validation_result.get('warning'):
-                    self.time_validation_total.labels(status='warning').inc()
-                    self.time_validation_warnings.inc()
+                    self.prometheus_collector.record_time_validation('warning')
+                    self.prometheus_collector.record_time_validation_warning()
                 else:
-                    self.time_validation_total.labels(status='success').inc()
+                    self.prometheus_collector.record_time_validation('success')
                 
                 if 'offset_minutes' in validation_result:
-                    self.time_offset_minutes.observe(validation_result['offset_minutes'])
+                    self.prometheus_collector.record_time_offset(validation_result['offset_minutes'])
             
             return validation_result
             
         except Exception as e:
             self.logger.error(f"Error during time validation: {e}")
             if self.prometheus_collector:
-                self.time_validation_total.labels(status='error').inc()
+                self.prometheus_collector.record_time_validation('error')
             
             return self._create_validation_result(
                 success=False,
