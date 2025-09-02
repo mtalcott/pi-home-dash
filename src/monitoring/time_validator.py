@@ -8,7 +8,6 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from prometheus_client import Counter, Histogram
-import asyncio
 
 
 class TimeValidator:
@@ -28,7 +27,7 @@ class TimeValidator:
             )
             
             self.time_offset_minutes = Histogram(
-                'pi_dashboard_time_validation_offset_minutes',
+                'pi_dashboard_time_offset_minutes',
                 'Time offset between displayed and system time in minutes',
                 buckets=(-10, -5, -2, -1, 0, 1, 2, 5, 10, float('inf'))
             )
@@ -43,12 +42,12 @@ class TimeValidator:
         
         self.logger.info("TimeValidator initialized")
     
-    def validate_time_from_page(self, page) -> Dict[str, Any]:
+    def validate_time_from_html(self, html_content: str) -> Dict[str, Any]:
         """
-        Validate displayed time against system time by extracting HTML content from Playwright page.
+        Validate displayed time against system time by parsing HTML content.
         
         Args:
-            page: Playwright page object
+            html_content: HTML content as string
             
         Returns:
             Dict containing validation results
@@ -57,8 +56,8 @@ class TimeValidator:
             # Get current system time
             system_time = datetime.now()
             
-            # Extract time from HTML elements with time/clock classes
-            displayed_time_info = self._extract_time_from_page(page)
+            # Extract time from HTML content
+            displayed_time_info = self._extract_time_from_html(html_content)
             if not displayed_time_info:
                 return self._create_validation_result(
                     success=True,
@@ -94,61 +93,37 @@ class TimeValidator:
                 error=f"Time validation failed: {str(e)}"
             )
     
-    def _extract_time_from_page(self, page) -> Optional[Dict[str, Any]]:
-        """Extract time from HTML elements with time/clock classes."""
+    def _extract_time_from_html(self, html_content: str) -> Optional[Dict[str, Any]]:
+        """Extract time from HTML content."""
         try:
-            # First try to find elements with time or clock classes
-            time_selectors = [
-                '.time',
-                '.clock'
+            # First look for elements with time or clock classes
+            time_class_patterns = [
+                r'<[^>]*class="[^"]*time[^"]*"[^>]*>([^<]+)</[^>]*>',
+                r'<[^>]*class="[^"]*clock[^"]*"[^>]*>([^<]+)</[^>]*>'
             ]
             
-            for selector in time_selectors:
-                try:
-                    # Use evaluate to run JavaScript that returns the text content
-                    text_content = page.evaluate(f'''
-                        () => {{
-                            const elements = document.querySelectorAll('{selector}');
-                            for (const element of elements) {{
-                                const text = element.textContent || element.innerText;
-                                if (text && text.trim()) {{
-                                    return text.trim();
-                                }}
-                            }}
-                            return null;
-                        }}
-                    ''')
-                    
+            for pattern in time_class_patterns:
+                matches = re.finditer(pattern, html_content, re.IGNORECASE)
+                for match in matches:
+                    text_content = match.group(1).strip()
                     if text_content:
                         time_info = self._parse_time_text(text_content)
                         if time_info:
-                            self.logger.debug(f"Found time in element with selector '{selector}': {text_content}")
+                            self.logger.debug(f"Found time in class element: {text_content}")
                             return time_info
-                except Exception as e:
-                    self.logger.debug(f"Error checking selector '{selector}': {e}")
-                    continue
             
             # If no time/clock elements found, search the entire page content
-            try:
-                # Use evaluate to get the page text content
-                text_content = page.evaluate('''
-                    () => {
-                        return document.body.textContent || document.body.innerText || '';
-                    }
-                ''')
-                
-                if text_content:
-                    time_info = self._parse_time_text(text_content)
-                    if time_info:
-                        self.logger.debug(f"Found time in page content: {time_info['matched_text']}")
-                        return time_info
-            except Exception as e:
-                self.logger.debug(f"Error searching full page content: {e}")
+            # Remove HTML tags for text-based time extraction
+            text_content = re.sub(r'<[^>]+>', ' ', html_content)
+            time_info = self._parse_time_text(text_content)
+            if time_info:
+                self.logger.debug(f"Found time in page content: {time_info['matched_text']}")
+                return time_info
             
             return None
             
         except Exception as e:
-            self.logger.error(f"Failed to extract time from page: {e}")
+            self.logger.error(f"Failed to extract time from HTML: {e}")
             return None
     
     def _parse_time_text(self, text: str) -> Optional[Dict[str, Any]]:
@@ -215,7 +190,7 @@ class TimeValidator:
                 success=True,
                 displayed_time=displayed_time,
                 system_time=system_time,
-                offset_minutes=round(offset_minutes, 1),
+                offset_minutes=round(offset_minutes),
                 has_difference=has_difference,
                 matched_text=time_info['matched_text']
             )
@@ -223,7 +198,7 @@ class TimeValidator:
             if has_difference:
                 warning_msg = (
                     f"Time display '{time_info['matched_text']}' differs from system time "
-                    f"by {abs(offset_minutes):.1f} minutes. "
+                    f"by {minute_difference} minutes. "
                     f"System time: {system_time.strftime('%I:%M %p')}, "
                     f"Displayed time: {displayed_time.strftime('%I:%M %p')}"
                 )

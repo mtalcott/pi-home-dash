@@ -55,20 +55,16 @@ def test_time_validation():
     test_html_correct = create_test_html_with_time(current_time_str)
     
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f"file://{test_html_correct.absolute()}")
-            
-            result = validator.validate_time_from_page(page)
-            validator.log_validation_summary(result)
-            
-            if result['success'] and not result.get('warning'):
-                print("✅ PASSED: Correct time validation")
-            else:
-                print("❌ FAILED: Correct time validation should pass without warnings")
-            
-            browser.close()
+        with open(test_html_correct, 'r') as f:
+            html_content = f.read()
+        
+        result = validator.validate_time_from_html(html_content)
+        validator.log_validation_summary(result)
+        
+        if result['success'] and not result.get('warning'):
+            print("✅ PASSED: Correct time validation")
+        else:
+            print("❌ FAILED: Correct time validation should pass without warnings")
     finally:
         test_html_correct.unlink()
     
@@ -80,20 +76,16 @@ def test_time_validation():
     test_html_incorrect = create_test_html_with_time(incorrect_time_str)
     
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f"file://{test_html_incorrect.absolute()}")
-            
-            result = validator.validate_time_from_page(page)
-            validator.log_validation_summary(result)
-            
-            if result['success'] and result.get('warning'):
-                print("✅ PASSED: Incorrect time validation detected mismatch")
-            else:
-                print("❌ FAILED: Incorrect time validation should detect mismatch")
-            
-            browser.close()
+        with open(test_html_incorrect, 'r') as f:
+            html_content = f.read()
+        
+        result = validator.validate_time_from_html(html_content)
+        validator.log_validation_summary(result)
+        
+        if result['success'] and result.get('warning'):
+            print("✅ PASSED: Incorrect time validation detected mismatch")
+        else:
+            print("❌ FAILED: Incorrect time validation should detect mismatch")
     finally:
         test_html_incorrect.unlink()
     
@@ -102,20 +94,16 @@ def test_time_validation():
     test_html_no_time = create_test_html_with_time("")
     
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f"file://{test_html_no_time.absolute()}")
-            
-            result = validator.validate_time_from_page(page)
-            validator.log_validation_summary(result)
-            
-            if result['success'] and 'No time displays found' in result.get('warning', ''):
-                print("✅ PASSED: No time display handled correctly")
-            else:
-                print("❌ FAILED: No time display should be handled gracefully")
-            
-            browser.close()
+        with open(test_html_no_time, 'r') as f:
+            html_content = f.read()
+        
+        result = validator.validate_time_from_html(html_content)
+        validator.log_validation_summary(result)
+        
+        if result['success'] and 'No time displays found' in result.get('warning', ''):
+            print("✅ PASSED: No time display handled correctly")
+        else:
+            print("❌ FAILED: No time display should be handled gracefully")
     finally:
         test_html_no_time.unlink()
     

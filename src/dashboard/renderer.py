@@ -364,8 +364,12 @@ class DashboardRenderer:
             
             # Validate time before taking screenshot
             if self.page:
-                validation_result = self.time_validator.validate_time_from_page(self.page)
-                self.time_validator.log_validation_summary(validation_result)
+                try:
+                    html_content = await self.page.content()
+                    validation_result = self.time_validator.validate_time_from_html(html_content)
+                    self.time_validator.log_validation_summary(validation_result)
+                except Exception as e:
+                    self.logger.debug(f"Time validation failed: {e}")
             
             await self.page.screenshot(path=str(output_path), full_page=True)
             duration = time.time() - start_time
