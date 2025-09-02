@@ -41,7 +41,7 @@ class DashboardRenderer:
         self.user_data_dir = Path(settings.project_root) / ".cache" / "chromium_profile"
         self.user_data_dir.mkdir(parents=True, exist_ok=True)
         
-        # Optimized Chrome arguments for Pi Zero 2 W
+        # Optimized Chrome arguments for Pi Zero 2 W - Memory optimized
         self.chrome_args = [
             '--headless=new',
             '--disable-gpu',
@@ -61,6 +61,18 @@ class DashboardRenderer:
             '--disk-cache-size=0',
             '--memory-pressure-off',
             '--max_old_space_size=256',  # Limit V8 heap for Pi
+            
+            # Memory optimization flags from ChatGPT recommendations
+            '--single-process',  # Reduces process overhead (45-90MB vs 110-180MB)
+            '--blink-settings=imagesEnabled=false',  # Biggest memory saver - disables image loading
+            '--disable-blink-features=BackForwardCache',  # Disable BFCache for memory savings
+            '--disable-ipc-flooding-protection',  # Reduce IPC overhead in single-process mode
+            '--disable-renderer-accessibility',  # Disable accessibility features
+            '--disable-speech-api',  # Disable speech synthesis
+            '--disable-web-security',  # Reduce security overhead (safe for dashboard use)
+            '--disable-features=VizDisplayCompositor',  # Disable compositor for memory savings
+            '--force-color-profile=srgb',  # Use simple color profile
+            '--disable-background-media-suspend',  # Prevent media suspension overhead
         ]
         
     def render(self):
