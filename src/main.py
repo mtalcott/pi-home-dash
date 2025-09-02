@@ -219,6 +219,7 @@ class PiHomeDashboard:
     
     def _calculate_next_update_time(self, current_time):
         """Calculate the next update time, aligning to minute boundaries for round minute intervals.
+        For DAKboard mode, targets 5 seconds after the top of the minute to account for DAKboard loading delay.
         
         Args:
             current_time: datetime object representing the current time
@@ -227,6 +228,7 @@ class PiHomeDashboard:
             datetime object representing when the next update should occur
         """
         interval_seconds = self.settings.update_interval
+        is_dakboard_mode = self.settings.dashboard_type == "dakboard"
         
         # Check if the interval is a round minute (60, 120, 300, etc.)
         if interval_seconds >= 60 and interval_seconds % 60 == 0:
@@ -253,15 +255,25 @@ class PiHomeDashboard:
             else:
                 # For 1-minute intervals, just use the next minute boundary
                 next_update_time = next_minute
-                
-            self.logger.info(f"Using minute-aligned scheduling: {interval_seconds}s interval aligns to {next_update_time.strftime('%H:%M:%S')}")
+            
+            # For DAKboard mode, add 5 seconds after the minute boundary to account for DAKboard delay
+            if is_dakboard_mode:
+                next_update_time = next_update_time + timedelta(seconds=5)
+                self.logger.info(f"DAKboard mode: {interval_seconds}s interval aligns to {next_update_time.strftime('%H:%M:%S')} (5s after minute boundary)")
+            else:
+                self.logger.info(f"Using minute-aligned scheduling: {interval_seconds}s interval aligns to {next_update_time.strftime('%H:%M:%S')}")
             
         else:
             # For non-round minute intervals, use the original logic
             if interval_seconds < 60:
                 # For sub-minute intervals, next update is at the next minute boundary
                 next_update_time = current_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
-                self.logger.info(f"Sub-minute interval ({interval_seconds}s), aligning to next minute boundary")
+                # For DAKboard mode, add 5 seconds after the minute boundary
+                if is_dakboard_mode:
+                    next_update_time = next_update_time + timedelta(seconds=5)
+                    self.logger.info(f"DAKboard mode: Sub-minute interval ({interval_seconds}s), aligning to 5s after minute boundary")
+                else:
+                    self.logger.info(f"Sub-minute interval ({interval_seconds}s), aligning to next minute boundary")
             else:
                 # For intervals >= 60 seconds that aren't round minutes, use current time + interval
                 next_update_time = current_time + timedelta(seconds=interval_seconds)
@@ -507,10 +519,6 @@ def main():
             success = results.get('success', False)
             if success:
                 print(f"\n✅ Integration test PASSED")
-                if 'validation' in results and results['validation']['overall_pass']:
-                    print("✅ All validation criteria met")
-                else:
-                    print("⚠️  Some validation criteria not met - check reports")
             else:
                 print(f"\n❌ Integration test FAILED: {results.get('error', 'Unknown error')}")
             sys.exit(0 if success else 1)
