@@ -8,6 +8,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from prometheus_client import Counter, Histogram
+import asyncio
 
 
 class TimeValidator:
@@ -27,7 +28,7 @@ class TimeValidator:
             )
             
             self.time_offset_minutes = Histogram(
-                'pi_dashboard_time_offset_minutes',
+                'pi_dashboard_time_validation_offset_minutes',
                 'Time offset between displayed and system time in minutes',
                 buckets=(-10, -5, -2, -1, 0, 1, 2, 5, 10, float('inf'))
             )
@@ -104,27 +105,43 @@ class TimeValidator:
             
             for selector in time_selectors:
                 try:
-                    elements = page.query_selector_all(selector)
-                    for element in elements:
-                        text_content = element.text_content()
-                        if text_content:
-                            time_info = self._parse_time_text(text_content.strip())
-                            if time_info:
-                                self.logger.debug(f"Found time in element with selector '{selector}': {text_content.strip()}")
-                                return time_info
+                    # Use evaluate to run JavaScript that returns the text content
+                    text_content = page.evaluate(f'''
+                        () => {{
+                            const elements = document.querySelectorAll('{selector}');
+                            for (const element of elements) {{
+                                const text = element.textContent || element.innerText;
+                                if (text && text.trim()) {{
+                                    return text.trim();
+                                }}
+                            }}
+                            return null;
+                        }}
+                    ''')
+                    
+                    if text_content:
+                        time_info = self._parse_time_text(text_content)
+                        if time_info:
+                            self.logger.debug(f"Found time in element with selector '{selector}': {text_content}")
+                            return time_info
                 except Exception as e:
                     self.logger.debug(f"Error checking selector '{selector}': {e}")
                     continue
             
             # If no time/clock elements found, search the entire page content
             try:
-                html_content = page.content()
-                # Remove HTML tags for text-based time extraction
-                text_content = re.sub(r'<[^>]+>', ' ', html_content)
-                time_info = self._parse_time_text(text_content)
-                if time_info:
-                    self.logger.debug(f"Found time in page content: {time_info['matched_text']}")
-                    return time_info
+                # Use evaluate to get the page text content
+                text_content = page.evaluate('''
+                    () => {
+                        return document.body.textContent || document.body.innerText || '';
+                    }
+                ''')
+                
+                if text_content:
+                    time_info = self._parse_time_text(text_content)
+                    if time_info:
+                        self.logger.debug(f"Found time in page content: {time_info['matched_text']}")
+                        return time_info
             except Exception as e:
                 self.logger.debug(f"Error searching full page content: {e}")
             
