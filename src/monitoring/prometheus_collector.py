@@ -120,7 +120,7 @@ class PrometheusCollector:
         self.time_offset_minutes = Histogram(
             'pi_dashboard_time_offset_minutes',
             'Time offset between displayed and system time in minutes',
-            buckets=(0, 1, 2, 5, 10, float('inf'))
+            buckets=(0.0, 1.0, 2.0, 5.0, 10.0, float('inf'))
         )
         
         self.time_validation_warnings = Counter(
@@ -218,8 +218,10 @@ class PrometheusCollector:
         Args:
             offset_minutes: Time offset in minutes (positive = displayed time is ahead)
         """
-        self.time_offset_minutes.observe(offset_minutes)
-        logger.debug(f"Recorded time offset: {offset_minutes:.1f} minutes")
+        # Use absolute value to avoid negative histogram issues
+        abs_offset = abs(offset_minutes)
+        self.time_offset_minutes.observe(abs_offset)
+        logger.debug(f"Recorded time offset magnitude: {abs_offset:.1f} minutes (original: {offset_minutes:.1f})")
     
     def record_time_validation_warning(self):
         """Record a time validation warning."""
