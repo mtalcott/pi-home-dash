@@ -213,6 +213,9 @@ class DashboardRenderer:
             self.logger.info(f"Loading initial page: {url}")
             await self.page.goto(url, wait_until="networkidle")
             
+            # Wait for all components to be fully loaded
+            await self._wait_for_components_loaded()
+            
             # Optimize for e-ink display
             await self._optimize_page_for_eink()
             
@@ -235,9 +238,70 @@ class DashboardRenderer:
             await self._cleanup_persistent_browser()
             return False
     
+    async def _wait_for_components_loaded(self):
+        """Wait for all components to be fully loaded before taking screenshot."""
+        try:
+            self.logger.info("Waiting for components to load...")
+            
+            # Wait for DOM to be ready
+            await self.page.wait_for_load_state("domcontentloaded")
+            
+            # Wait for all network requests to complete
+            await self.page.wait_for_load_state("networkidle")
+            
+            # Wait for JavaScript to execute and dynamic content to load
+            await asyncio.sleep(2)  # Give time for JS execution
+            
+            # Check if page has specific loading indicators we should wait for
+            try:
+                # Wait for common loading indicators to disappear
+                await self.page.wait_for_function("""
+                    () => {
+                        // Check for common loading indicators
+                        const loadingElements = document.querySelectorAll('[class*="loading"], [class*="spinner"], [id*="loading"]');
+                        const loadingTexts = Array.from(document.querySelectorAll('*')).filter(el => 
+                            el.textContent && el.textContent.toLowerCase().includes('loading')
+                        );
+                        
+                        // Return true when no loading indicators are visible
+                        return loadingElements.length === 0 && loadingTexts.length === 0;
+                    }
+                """, timeout=10000)  # 10 second timeout
+            except Exception:
+                # If no loading indicators found or timeout, continue
+                pass
+            
+            # Wait for any pending network requests to complete
+            try:
+                await self.page.wait_for_function("""
+                    () => {
+                        // Check if there are any pending fetch requests or XMLHttpRequests
+                        return window.fetch === undefined || 
+                               (window.performance && 
+                                window.performance.getEntriesByType('resource').every(r => r.responseEnd > 0));
+                    }
+                """, timeout=15000)  # 15 second timeout
+            except Exception:
+                # If timeout or error, continue anyway
+                pass
+            
+            # Additional wait for dynamic content updates
+            await asyncio.sleep(1)
+            
+            self.logger.info("Component loading wait completed")
+            
+        except Exception as e:
+            self.logger.warning(f"Error waiting for components: {e}")
+            # Continue anyway after a short delay
+            await asyncio.sleep(2)
+    
     async def _optimize_page_for_eink(self):
         """Optimize the page for e-ink display rendering."""
         try:
+            if not self.page:
+                self.logger.warning("Page not available for optimization")
+                return
+                
             # Disable animations and transitions
             await self.page.add_style_tag(content="""
                 * { 
@@ -374,14 +438,20 @@ class DashboardRenderer:
         try:
             start_time = time.time()
             
+            if not self.page:
+                self.logger.error("Page not available for screenshot")
+                return False
+            
+            # Wait for all components to be fully loaded before taking screenshot
+            await self._wait_for_components_loaded()
+            
             # Validate time before taking screenshot
-            if self.page:
-                try:
-                    html_content = await self.page.content()
-                    validation_result = self.time_validator.validate_time_from_html(html_content)
-                    self.time_validator.log_validation_summary(validation_result)
-                except Exception as e:
-                    self.logger.debug(f"Time validation failed: {e}")
+            try:
+                html_content = await self.page.content()
+                validation_result = self.time_validator.validate_time_from_html(html_content)
+                self.time_validator.log_validation_summary(validation_result)
+            except Exception as e:
+                self.logger.debug(f"Time validation failed: {e}")
             
             await self.page.screenshot(path=str(output_path), full_page=True)
             duration = time.time() - start_time
@@ -405,8 +475,17 @@ class DashboardRenderer:
     async def _refresh_page_async(self) -> bool:
         """Async method to refresh page."""
         try:
+            if not self.page:
+                self.logger.error("Page not available for refresh")
+                return False
+                
             self.logger.info("Refreshing persistent browser page...")
             await self.page.reload(wait_until="networkidle")
+            
+            # Wait for all components to be fully loaded after refresh
+            await self._wait_for_components_loaded()
+            
+            # Optimize for e-ink display
             await self._optimize_page_for_eink()
             return True
         except Exception as e:
