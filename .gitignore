@@ -14,7 +14,8 @@ temp/
 *.log.*
 *.log.*.gz
 
-# Test result files (but keep directory structure and .gitkeep files)
+# Test result files & screenshots (but keep directory structure and .gitkeep files)
+screenshots/*.png
 test_results/screenshots/*.png
 test_results/reports/*.csv
 test_results/reports/*.json

@@ -5,6 +5,7 @@ services:
       - ./temp:/app/temp
       - ./logs:/var/log
       - ./test_results:/app/test_results
+      - ./screenshots:/app/screenshots
     environment:
       # Existing variables
       - DEBUG=${DEBUG}

@@ -116,7 +116,7 @@ class PiHomeDashboard:
         return False
     
     def _save_persistent_screenshot(self, image, timestamp=None):
-        """Save a persistent screenshot with timestamp.
+        """Save a persistent screenshot with timestamp and manage screenshot limit.
         
         Args:
             image: PIL Image to save
@@ -135,16 +135,51 @@ class PiHomeDashboard:
         
         try:
             image.save(filepath, "PNG")
-            self.logger.info(f"Persistent screenshot saved: {filepath}")
+            self.logger.info(f"Debug screenshot saved: {filepath}")
             
             # Also save as "latest.png" for easy access
             latest_path = screenshots_dir / "latest.png"
             image.save(latest_path, "PNG")
             
+            # Manage screenshot limit (keep only the 10 most recent)
+            self._cleanup_old_screenshots(screenshots_dir, max_screenshots=10)
+            
             return filepath
         except Exception as e:
-            self.logger.error(f"Failed to save persistent screenshot: {e}")
+            self.logger.error(f"Failed to save debug screenshot: {e}")
             return None
+    
+    def _cleanup_old_screenshots(self, screenshots_dir, max_screenshots=10):
+        """Remove old screenshots to maintain the specified limit.
+        
+        Args:
+            screenshots_dir: Path to screenshots directory
+            max_screenshots: Maximum number of screenshots to keep (default: 10)
+        """
+        try:
+            # Get all dashboard screenshot files (exclude latest.png)
+            screenshot_files = []
+            for file_path in screenshots_dir.glob("dashboard_*.png"):
+                if file_path.name != "latest.png":
+                    screenshot_files.append(file_path)
+            
+            # Sort by modification time (newest first)
+            screenshot_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            # Remove files beyond the limit
+            files_to_remove = screenshot_files[max_screenshots:]
+            for file_path in files_to_remove:
+                try:
+                    file_path.unlink()
+                    self.logger.debug(f"Removed old screenshot: {file_path.name}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to remove old screenshot {file_path.name}: {e}")
+            
+            if files_to_remove:
+                self.logger.info(f"Cleaned up {len(files_to_remove)} old screenshots, keeping {min(len(screenshot_files), max_screenshots)} most recent")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to cleanup old screenshots: {e}")
     
     def _get_friendly_timestamp(self):
         """Get a friendly formatted timestamp for display messages."""
@@ -363,6 +398,10 @@ class PiHomeDashboard:
                     self.logger.error("Failed to render dashboard content")
                     self.metrics.record_update_failure()
                     return False
+                
+                # Save debug screenshot if debug mode is enabled
+                if self.settings.debug_mode:
+                    self._save_persistent_screenshot(dashboard_image)
                 
                 # Update display with performance timing
                 self.logger.info("Updating e-ink display...")
