@@ -135,7 +135,7 @@ class PiHomeDashboard:
         
         try:
             image.save(filepath, "PNG")
-            self.logger.info(f"Debug screenshot saved: {filepath}")
+            self.logger.info(f"Screenshot saved: {filepath}")
             
             # Also save as "latest.png" for easy access
             latest_path = screenshots_dir / "latest.png"
@@ -146,7 +146,7 @@ class PiHomeDashboard:
             
             return filepath
         except Exception as e:
-            self.logger.error(f"Failed to save debug screenshot: {e}")
+            self.logger.error(f"Failed to save screenshot: {e}")
             return None
     
     def _cleanup_old_screenshots(self, screenshots_dir, max_screenshots=10):
@@ -399,9 +399,8 @@ class PiHomeDashboard:
                     self.metrics.record_update_failure()
                     return False
                 
-                # Save debug screenshot if debug mode is enabled
-                if self.settings.debug_mode:
-                    self._save_persistent_screenshot(dashboard_image)
+                # Save a screenshot of the rendered dashboard for troubleshooting/history
+                self._save_persistent_screenshot(dashboard_image)
                 
                 # Update display with performance timing
                 self.logger.info("Updating e-ink display...")
