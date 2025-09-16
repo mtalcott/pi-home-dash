@@ -252,25 +252,6 @@ class DashboardRenderer:
             # Wait for JavaScript to execute and dynamic content to load
             await asyncio.sleep(2)  # Give time for JS execution
             
-            # Check if page has specific loading indicators we should wait for
-            try:
-                # Wait for common loading indicators to disappear
-                await self.page.wait_for_function("""
-                    () => {
-                        // Check for common loading indicators
-                        const loadingElements = document.querySelectorAll('[class*="loading"], [class*="spinner"], [id*="loading"]');
-                        const loadingTexts = Array.from(document.querySelectorAll('*')).filter(el => 
-                            el.textContent && el.textContent.toLowerCase().includes('loading')
-                        );
-                        
-                        // Return true when no loading indicators are visible
-                        return loadingElements.length === 0 && loadingTexts.length === 0;
-                    }
-                """, timeout=10000)  # 10 second timeout
-            except Exception:
-                # If no loading indicators found or timeout, continue
-                pass
-            
             # Wait for any pending network requests to complete
             try:
                 await self.page.wait_for_function("""
@@ -280,7 +261,7 @@ class DashboardRenderer:
                                (window.performance && 
                                 window.performance.getEntriesByType('resource').every(r => r.responseEnd > 0));
                     }
-                """, timeout=15000)  # 15 second timeout
+                """, timeout=5000)  # 5 second timeout
             except Exception:
                 # If timeout or error, continue anyway
                 pass
