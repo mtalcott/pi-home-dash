@@ -191,22 +191,22 @@ class EInkTestUtility:
             print("\n⚠️  Direct partial refresh not available")
             return False
         
-        print("\n⚡ Testing DIRECT partial refresh...")
+        print("\n⚡ Testing DIRECT partial refresh (GLR16 mode)...")
         
         # Create test image
-        image = self.create_text_image(f"DIRECT PARTIAL\n{time.strftime('%H:%M:%S')}", font_size=font_size)
+        image = self.create_text_image(f"DIRECT PARTIAL GLR16\n{time.strftime('%H:%M:%S')}", font_size=font_size)
         processed_image = self.driver._process_image(image)
         
-        # Use direct partial refresh
+        # Use direct partial refresh with GLR16 mode
         start_time = time.time()
         try:
             self.direct_display.frame_buf.paste(processed_image, (0, 0))
-            self.direct_display.draw_partial(constants.DisplayModes.DU)
+            self.direct_display.draw_partial(constants.DisplayModes.GLR16)
             duration = time.time() - start_time
-            print(f"✅ Direct partial refresh completed in {duration:.2f}s")
+            print(f"✅ Direct partial refresh (GLR16) completed in {duration:.2f}s")
             return True
         except Exception as e:
-            print(f"❌ Direct partial refresh failed: {e}")
+            print(f"❌ Direct partial refresh (GLR16) failed: {e}")
             return False
     
     def test_direct_full_refresh(self, font_size=72):

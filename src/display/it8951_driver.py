@@ -133,26 +133,27 @@ class IT8951Driver:
             start_time = time.time()
             
             if need_full_refresh:
-                # Full refresh using INIT mode for best quality
+                # Full refresh using GC16 mode for high quality updates
+                # See http://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf
                 self.display.frame_buf.paste(processed_image, (0, 0))
-                self.display.draw_full(constants.DisplayModes.INIT)
+                self.display.draw_full(constants.DisplayModes.GC16)
                 self.partial_refresh_count = 0
-                self.logger.info("Full refresh completed with INIT mode, reset partial refresh count to 0")
+                self.logger.info("Full refresh completed with GC16 mode, reset partial refresh count to 0")
             else:
-                # Partial refresh
+                # Partial refresh using GLR16 mode for optimized partial updates
                 if region:
                     # Partial refresh with specific region
                     x, y, w, h = region
                     cropped_image = processed_image.crop((x, y, x + w, y + h))
                     self.display.frame_buf.paste(cropped_image, (x, y))
-                    self.display.draw_partial(constants.DisplayModes.DU, (x, y, x + w, y + h))
+                    self.display.draw_partial(constants.DisplayModes.GLR16, (x, y, x + w, y + h))
                 else:
                     # Full area partial refresh
                     self.display.frame_buf.paste(processed_image, (0, 0))
-                    self.display.draw_partial(constants.DisplayModes.DU)
+                    self.display.draw_partial(constants.DisplayModes.GLR16)
                 
                 self.partial_refresh_count += 1
-                self.logger.debug(f"Partial refresh completed, count now: {self.partial_refresh_count}")
+                self.logger.debug(f"Partial refresh completed with GLR16 mode, count now: {self.partial_refresh_count}")
             
             duration = time.time() - start_time
             self.last_update_time = time.time()
@@ -571,7 +572,7 @@ class IT8951Driver:
         
         Args:
             image: PIL Image to display
-            display_mode: IT8951 display mode (defaults to DU for fast partial)
+            display_mode: IT8951 display mode (defaults to GLR16 for optimized partial)
             
         Returns:
             bool: True if successful
@@ -582,13 +583,13 @@ class IT8951Driver:
         
         try:
             processed_image = self._process_image(image)
-            mode = getattr(constants.DisplayModes, display_mode or 'DU')
+            mode = getattr(constants.DisplayModes, display_mode or 'GLR16')
             
             self.display.frame_buf.paste(processed_image, (0, 0))
             self.display.draw_partial(mode)
             
             self.partial_refresh_count += 1
-            self.logger.info(f"Direct partial refresh completed (mode: {display_mode or 'DU'})")
+            self.logger.info(f"Direct partial refresh completed (mode: {display_mode or 'GLR16'})")
             return True
             
         except Exception as e:
@@ -601,7 +602,7 @@ class IT8951Driver:
         
         Args:
             image: PIL Image to display
-            display_mode: IT8951 display mode (defaults to INIT for full refresh)
+            display_mode: IT8951 display mode (defaults to GC16 for high quality full refresh)
             
         Returns:
             bool: True if successful
@@ -612,13 +613,13 @@ class IT8951Driver:
         
         try:
             processed_image = self._process_image(image)
-            mode = getattr(constants.DisplayModes, display_mode or 'INIT')
+            mode = getattr(constants.DisplayModes, display_mode or 'GC16')
             
             self.display.frame_buf.paste(processed_image, (0, 0))
             self.display.draw_full(mode)
             
             self.partial_refresh_count = 0
-            self.logger.info(f"Direct full refresh completed (mode: {display_mode or 'INIT'})")
+            self.logger.info(f"Direct full refresh completed (mode: {display_mode or 'GC16'})")
             return True
             
         except Exception as e:
