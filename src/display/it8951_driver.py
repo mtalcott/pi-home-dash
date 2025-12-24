@@ -133,11 +133,11 @@ class IT8951Driver:
             start_time = time.time()
             
             if need_full_refresh:
-                # Full refresh
+                # Full refresh using INIT mode for best quality
                 self.display.frame_buf.paste(processed_image, (0, 0))
-                self.display.draw_full(constants.DisplayModes.GC16)
+                self.display.draw_full(constants.DisplayModes.INIT)
                 self.partial_refresh_count = 0
-                self.logger.info("Full refresh completed, reset partial refresh count to 0")
+                self.logger.info("Full refresh completed with INIT mode, reset partial refresh count to 0")
             else:
                 # Partial refresh
                 if region:
@@ -247,9 +247,9 @@ class IT8951Driver:
             # Create white image and display it
             white_image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
             
-            # Use full refresh for clearing
+            # Use full refresh for clearing with INIT mode
             self.display.frame_buf.paste(white_image, (0, 0))
-            self.display.draw_full(constants.DisplayModes.GC16)
+            self.display.draw_full(constants.DisplayModes.INIT)
             self.partial_refresh_count = 0  # Reset counter after clear
             
             self.logger.info("Display cleared successfully")
@@ -601,7 +601,7 @@ class IT8951Driver:
         
         Args:
             image: PIL Image to display
-            display_mode: IT8951 display mode (defaults to GC16 for full refresh)
+            display_mode: IT8951 display mode (defaults to INIT for full refresh)
             
         Returns:
             bool: True if successful
@@ -612,13 +612,13 @@ class IT8951Driver:
         
         try:
             processed_image = self._process_image(image)
-            mode = getattr(constants.DisplayModes, display_mode or 'GC16')
+            mode = getattr(constants.DisplayModes, display_mode or 'INIT')
             
             self.display.frame_buf.paste(processed_image, (0, 0))
             self.display.draw_full(mode)
             
             self.partial_refresh_count = 0
-            self.logger.info(f"Direct full refresh completed (mode: {display_mode or 'GC16'})")
+            self.logger.info(f"Direct full refresh completed (mode: {display_mode or 'INIT'})")
             return True
             
         except Exception as e:
