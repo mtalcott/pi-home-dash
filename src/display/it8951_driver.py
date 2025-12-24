@@ -51,8 +51,13 @@ class IT8951Driver:
         try:
             self.logger.info("Initializing IT8951 display...")
             
-            # Initialize the display with auto-detection
-            self.display = AutoEPDDisplay(vcom=-2.06, rotate=None, spi_hz=24000000, mirror=True)
+            # Initialize the display using settings
+            self.display = AutoEPDDisplay(
+                vcom=self.settings.it8951_vcom,
+                rotate=self.settings.it8951_rotate,
+                spi_hz=self.settings.it8951_spi_hz,
+                mirror=self.settings.it8951_mirror
+            )
             
             if self.display is None:
                 raise RuntimeError("Failed to initialize IT8951 display")

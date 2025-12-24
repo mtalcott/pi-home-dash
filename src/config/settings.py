@@ -37,6 +37,16 @@ def _get_env_bool(name: str, default: bool) -> bool:
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _get_env_float(name: str, default: float) -> float:
+    val = os.getenv(name)
+    if val is None or val == "":
+        return default
+    try:
+        return float(val)
+    except Exception:
+        return default
+
+
 class Settings:
     """Main configuration class for the dashboard."""
 
@@ -69,6 +79,12 @@ class Settings:
         # Display driver settings
         "display_type": "it8951",  # "it8951" for hardware, "mock" for testing
         "epd_mode": "bw",  # Display mode: "bw" or "gray16"
+        
+        # IT8951 specific settings
+        "it8951_vcom": -1.46,      # VCOM voltage for IT8951 display (-1.5V to -3.0V range)
+        "it8951_spi_hz": 16000000, # SPI frequency in Hz (16MHz for balanced performance/stability)
+        "it8951_mirror": True,     # Mirror display output to fix reversed images
+        "it8951_rotate": None,     # Rotation: None, 90, 180, 270
 
         # Prometheus metrics settings
         "prometheus_port": 8000,
@@ -104,6 +120,12 @@ class Settings:
 
         self.display_type = self.DEFAULTS["display_type"]
         self.epd_mode = self.DEFAULTS["epd_mode"]
+
+        # IT8951 specific settings
+        self.it8951_vcom = self.DEFAULTS["it8951_vcom"]
+        self.it8951_spi_hz = self.DEFAULTS["it8951_spi_hz"]
+        self.it8951_mirror = self.DEFAULTS["it8951_mirror"]
+        self.it8951_rotate = self.DEFAULTS["it8951_rotate"]
 
         # Prometheus metrics settings
         self.prometheus_port = self.DEFAULTS["prometheus_port"]
@@ -145,6 +167,19 @@ class Settings:
 
         # Display driver type
         self.display_type = _get_env_str("DISPLAY_TYPE", self.display_type)
+
+        # IT8951 specific settings
+        self.it8951_vcom = _get_env_float("IT8951_VCOM", self.it8951_vcom)
+        self.it8951_spi_hz = _get_env_int("IT8951_SPI_HZ", self.it8951_spi_hz)
+        self.it8951_mirror = _get_env_bool("IT8951_MIRROR", self.it8951_mirror)
+        
+        # Handle IT8951_ROTATE which can be None or int
+        rotate_env = os.getenv("IT8951_ROTATE")
+        if rotate_env is not None and rotate_env.strip().lower() not in ("none", "null", ""):
+            try:
+                self.it8951_rotate = int(rotate_env)
+            except ValueError:
+                pass  # Keep default value
 
     def _ensure_directory_writable(self, directory: Path):
         """Ensure directory exists and is writable by current user."""
