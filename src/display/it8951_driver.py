@@ -49,7 +49,7 @@ class IT8951Driver:
     def _init_display(self):
         """Initialize the IT8951 display."""
         try:
-            self.logger.info("Initializing IT8951 display...")
+            self.logger.info(f"Initializing IT8951 display with VCOM={self.settings.it8951_vcom}V, SPI_HZ={self.settings.it8951_spi_hz:,}Hz ({self.settings.it8951_spi_hz/1000000:.0f}MHz), Mirror={self.settings.it8951_mirror}, Rotate={self.settings.it8951_rotate}")
             
             # Initialize the display using settings
             self.display = AutoEPDDisplay(
