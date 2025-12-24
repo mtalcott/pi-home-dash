@@ -32,7 +32,11 @@ class PiHomeDashboard:
         self.settings = Settings()
         self.test_mode = test_mode
         
-        # Initialize metrics collection first
+        # Setup logging FIRST so all subsequent initialization can log properly
+        self._setup_logging()
+        self.logger = logging.getLogger(__name__)
+        
+        # Initialize metrics collection
         self.metrics = PrometheusCollector(port=self.settings.prometheus_port)
         if self.settings.prometheus_enabled:
             self.metrics.start_server()
@@ -52,10 +56,6 @@ class PiHomeDashboard:
         self.persistent_browser_enabled = False
         self.browser_refresh_count = 0
         self.max_renders_before_refresh = 1440  # Refresh browser every day (1440 minutes)
-        
-        # Setup logging
-        self._setup_logging()
-        self.logger = logging.getLogger(__name__)
         
         # Log initialization info
         if test_mode:
