@@ -138,6 +138,8 @@ class IT8951Driver:
             
             if need_full_refresh:
                 # Full refresh for high quality updates
+                # Start with fully clearing the display
+                self.display.clear()
                 # For some reason, GC16 even though it is recommended for highest quality doesn't
                 #   always update the display fully. Using GLD16 which seems highest quality.
                 # See http://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf
