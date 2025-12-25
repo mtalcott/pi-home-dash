@@ -315,6 +315,72 @@ class EInkTestUtility:
         
         print("\n✅ Refresh comparison test completed")
     
+    def render_image_with_display_mode(self, image_path, display_mode="GC16"):
+        """
+        Render an image from file using a specific IT8951 display mode.
+        
+        Args:
+            image_path: Path to the image file to display
+            display_mode: IT8951 display mode (e.g., GC16, GLR16, INIT, etc.)
+        
+        Returns:
+            bool: True if rendering was successful
+        """
+        try:
+            # Validate image path
+            image_file = Path(image_path)
+            if not image_file.exists():
+                print(f"❌ Image file not found: {image_path}")
+                return False
+            
+            print(f"\n🎨 Rendering image: {image_file.name}")
+            print(f"   Display mode: {display_mode}")
+            
+            # Load the image
+            try:
+                image = Image.open(image_file)
+                print(f"   Loaded image: {image.size[0]}x{image.size[1]} ({image.mode})")
+            except Exception as e:
+                print(f"❌ Failed to load image: {e}")
+                return False
+            
+            # Determine if this is a full or partial refresh mode
+            # Based on common IT8951 modes - full refresh modes typically include GC16, INIT
+            # Partial refresh modes typically include GLR16, DU, A2
+            full_refresh_modes = {'GC16', 'INIT', 'GL16', 'GCC16', 'GLD16'}
+            is_full_refresh = display_mode.upper() in full_refresh_modes
+            
+            refresh_type = "full" if is_full_refresh else "partial"
+            print(f"   Refresh type: {refresh_type}")
+            
+            # Use the driver's direct refresh methods with the specified mode
+            start_time = time.time()
+            
+            if is_full_refresh:
+                success = self.driver.direct_full_refresh(image, display_mode)
+            else:
+                success = self.driver.direct_partial_refresh(image, display_mode)
+            
+            duration = time.time() - start_time
+            
+            if success:
+                print(f"✅ Image rendered successfully in {duration:.2f}s using {display_mode} mode")
+            else:
+                print(f"❌ Failed to render image using {display_mode} mode")
+                # Fallback: try with the standard driver update method
+                print("   Attempting fallback with standard driver...")
+                success = self.driver.update(image, force_full_refresh=is_full_refresh)
+                if success:
+                    print(f"✅ Fallback successful using standard driver")
+                else:
+                    print(f"❌ Fallback also failed")
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Error rendering image with display mode: {e}")
+            return False
+    
     def cleanup(self):
         """Clean up resources."""
         try:
@@ -347,6 +413,11 @@ def main():
                        help='Display test pattern')
     parser.add_argument('--compare', action='store_true',
                        help='Run refresh comparison test')
+    parser.add_argument('--render-image', type=str,
+                       help='Path to image file to render with specified display mode')
+    parser.add_argument('--display-mode', type=str, default='GC16',
+                       choices=['INIT', 'DU', 'GC16', 'GL16', 'GLR16', 'GLD16', 'A2'],
+                       help='IT8951 display mode to use with --render-image (default: GC16)')
     parser.add_argument('--all', action='store_true',
                        help='Run all tests')
     
@@ -396,6 +467,9 @@ def main():
             
         elif args.pattern:
             utility.test_pattern(args.pattern)
+            
+        elif args.render_image:
+            utility.render_image_with_display_mode(args.render_image, args.display_mode)
             
         else:
             # Default: show help and run basic test
