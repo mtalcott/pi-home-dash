@@ -84,6 +84,7 @@ class IT8951Driver:
             
         except Exception as e:
             self.logger.error(f"Failed to initialize IT8951 display: {e}")
+            self.display = None
             self.hardware_initialized = False
     
     def update(self, image: Image.Image, force_full_refresh: bool = False, region: Optional[Tuple[int, int, int, int]] = None) -> bool:
@@ -131,6 +132,9 @@ class IT8951Driver:
             
             # Perform the update
             start_time = time.time()
+            
+            # At this point, hardware_initialized is True, so display must not be None
+            assert self.display is not None, "Display should not be None when hardware is initialized"
             
             if need_full_refresh:
                 # Full refresh using GC16 mode for high quality updates
@@ -247,6 +251,9 @@ class IT8951Driver:
             
             # Create white image and display it
             white_image = Image.new('L', (self.settings.display_width, self.settings.display_height), 255)
+            
+            # Hardware is initialized, so display must not be None
+            assert self.display is not None, "Display should not be None when hardware is initialized"
             
             # Use full refresh for clearing with INIT mode
             self.display.frame_buf.paste(white_image, (0, 0))
@@ -585,6 +592,9 @@ class IT8951Driver:
             processed_image = self._process_image(image)
             mode = getattr(constants.DisplayModes, display_mode or 'GLR16')
             
+            # Hardware is initialized, so display must not be None
+            assert self.display is not None, "Display should not be None when hardware is initialized"
+            
             self.display.frame_buf.paste(processed_image, (0, 0))
             self.display.draw_partial(mode)
             
@@ -614,6 +624,9 @@ class IT8951Driver:
         try:
             processed_image = self._process_image(image)
             mode = getattr(constants.DisplayModes, display_mode or 'GC16')
+            
+            # Hardware is initialized, so display must not be None
+            assert self.display is not None, "Display should not be None when hardware is initialized"
             
             self.display.frame_buf.paste(processed_image, (0, 0))
             self.display.draw_full(mode)
