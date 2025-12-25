@@ -137,14 +137,16 @@ class IT8951Driver:
             assert self.display is not None, "Display should not be None when hardware is initialized"
             
             if need_full_refresh:
-                # Full refresh using GC16 mode for high quality updates
+                # Full refresh for high quality updates
+                # For some reason, GC16 even though it is recommended for highest quality doesn't
+                #   always update the display fully. Using GLD16 which seems highest quality.
                 # See http://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf
                 self.display.frame_buf.paste(processed_image, (0, 0))
-                self.display.draw_full(constants.DisplayModes.GC16)
+                self.display.draw_full(constants.DisplayModes.GLD16)
                 self.partial_refresh_count = 0
-                self.logger.info("Full refresh completed with GC16 mode, reset partial refresh count to 0")
+                self.logger.info("Full refresh completed with GLD16 mode, reset partial refresh count to 0")
             else:
-                # Partial refresh using GLR16 mode for optimized partial updates
+                # Partial refresh using GL16 mode for optimized partial updates
                 if region:
                     # Partial refresh with specific region
                     x, y, w, h = region
