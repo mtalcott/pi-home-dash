@@ -27,7 +27,3 @@ config.ini
 
 # Test outputs
 *.png
-
-# E-ink troubleshooting outputs
-eink_troubleshoot_results_*.json
-troubleshoot_eink.log
