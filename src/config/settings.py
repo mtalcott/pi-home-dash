@@ -73,7 +73,7 @@ class Settings:
         "browser_timeout": 30,  # seconds
 
         # E-ink display specific settings
-        "eink_partial_refresh_limit": 60,  # Number of partial refreshes before full refresh
+        "full_update_interval": 3600,    # 1 hour
         "eink_ghosting_prevention": True,
 
         # Display driver settings
@@ -115,7 +115,7 @@ class Settings:
         self.browser_height = self.display_height
         self.browser_timeout = self.DEFAULTS["browser_timeout"]
 
-        self.eink_partial_refresh_limit = self.DEFAULTS["eink_partial_refresh_limit"]
+        self.full_update_interval = self.DEFAULTS["full_update_interval"]
         self.eink_ghosting_prevention = self.DEFAULTS["eink_ghosting_prevention"]
 
         self.display_type = self.DEFAULTS["display_type"]
@@ -157,9 +157,9 @@ class Settings:
         # Update cadence
         self.update_interval = _get_env_int("UPDATE_INTERVAL", self.update_interval)
         self.browser_timeout = _get_env_int("BROWSER_TIMEOUT", self.browser_timeout)
-        
+
         # E-ink display settings
-        self.eink_partial_refresh_limit = _get_env_int("EINK_PARTIAL_REFRESH_LIMIT", self.eink_partial_refresh_limit)
+        self.full_update_interval = _get_env_int("FULL_UPDATE_INTERVAL", self.full_update_interval)
 
         # Display geometry
         self.display_width = _get_env_int("DISPLAY_WIDTH", self.display_width)

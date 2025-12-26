@@ -457,41 +457,60 @@ class PiHomeDashboard:
 
         is_first_update = True
         intended_update_time = None
-        
+        last_full_refresh_time = time.monotonic()
+
         try:
             while True:
+                now = datetime.now()
+                monotonic_now = time.monotonic()
+                
+                # Determine if a full refresh is needed
+                force_full_refresh = is_first_update
+                if not force_full_refresh:
+                    # Check if the current time is at the top of the hour (:00)
+                    if now.minute == 0 and now.second < self.settings.update_interval:
+                        force_full_refresh = True
+                        self.logger.info("Performing full refresh on the hour.")
+                    # Fallback to interval-based full refresh
+                    elif monotonic_now - last_full_refresh_time >= self.settings.full_update_interval:
+                        force_full_refresh = True
+                        self.logger.info(f"Performing full refresh after {self.settings.full_update_interval}s interval.")
+
                 # Perform the display update
                 if is_first_update:
                     self.logger.info("Performing initial display update...")
-                    success = self.update_display(force_full_refresh=True)
-                    is_first_update = False
-                else:
-                    time_str = intended_update_time.strftime("%H:%M:%S") if intended_update_time else "<none>"
-                    self.logger.info(f"Update intended for: {time_str}")
-                    success = self.update_display(force_full_refresh=False)
-                    
-                    # Record timing offset metric for non-initial updates
-                    if intended_update_time:
-                        actual_completion_time = datetime.now()
-                        timing_offset_seconds = (actual_completion_time - intended_update_time).total_seconds()
-                        self.metrics.record_update_timing_offset(timing_offset_seconds)
                 
+                time_str = intended_update_time.strftime("%H:%M:%S") if intended_update_time else "<none>"
+                self.logger.info(f"Update intended for: {time_str}")
+                success = self.update_display(force_full_refresh=force_full_refresh)
+
+                if force_full_refresh:
+                    last_full_refresh_time = monotonic_now
+
+                is_first_update = False
+
+                # Record timing offset metric for non-initial updates
+                if intended_update_time:
+                    actual_completion_time = datetime.now()
+                    timing_offset_seconds = (actual_completion_time - intended_update_time).total_seconds()
+                    self.metrics.record_update_timing_offset(timing_offset_seconds)
+
                 # Calculate when the next update should occur
                 current_time = datetime.now()
                 next_update_time = self._calculate_next_update_time(intended_update_time or current_time)
-                
+
                 # Calculate remaining time until next update and sleep if needed
                 time_until_next_update = (next_update_time - current_time).total_seconds()
-                
+
                 if time_until_next_update > 0:
                     self.logger.info(f"Update completed, waiting {time_until_next_update:.2f} seconds until next update at {next_update_time.strftime('%H:%M:%S')}...")
                     time.sleep(time_until_next_update)
                 else:
                     self.logger.warning(f"Update took longer than expected, next update is {abs(time_until_next_update):.2f} seconds overdue")
-                
+
                 # Set the intended time for the next iteration
                 intended_update_time = next_update_time
-                
+
         except KeyboardInterrupt:
             self.logger.info("Dashboard stopped by user")
         except Exception as e:

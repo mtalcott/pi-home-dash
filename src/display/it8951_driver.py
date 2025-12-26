@@ -106,8 +106,7 @@ class IT8951Driver:
             
             # Check if we need a full refresh
             need_full_refresh = (
-                force_full_refresh or 
-                self.partial_refresh_count >= self.settings.eink_partial_refresh_limit or
+                force_full_refresh or
                 self.last_image is None
             )
             
@@ -148,7 +147,7 @@ class IT8951Driver:
                 self.partial_refresh_count = 0
                 self.logger.info("Full refresh completed with GLD16 mode, reset partial refresh count to 0")
             else:
-                # Partial refresh using GL16 mode for optimized partial updates
+                # Partial refresh using GLR16 mode for optimized partial updates
                 if region:
                     # Partial refresh with specific region
                     x, y, w, h = region
