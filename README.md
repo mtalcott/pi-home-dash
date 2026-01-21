@@ -1,8 +1,8 @@
 # Pi Home Dashboard - E-Ink Smart Display
 
-A DIY e-ink display for home with smart calendar functionality, similar to Skylight Smart Calendar or DAKboard. It runs on a Raspberry Pi 4 and renders a customizable dashboard (calendar, weather, to-do lists) onto a 10.3" e-paper screen, designed to be mounted in a shadow box frame.
+A DIY e-ink display for home with smart calendar functionality, similar to Skylight Smart Calendar or Cozyla but without the backlight. It runs on a Raspberry Pi 4 and renders a customizable dashboard (calendar, weather, to-do lists) onto a 10.3" e-paper screen, designed to be mounted in a shadow box frame.
 
-<img width="1660" height="1240" alt="pi-home-dash-rendered" src="https://github.com/user-attachments/assets/8a8c1737-790f-4f3c-8126-4c3da023062b" />
+<img width="1997" height="1491" alt="pi-home-dash-rendered" src="https://github.com/user-attachments/assets/83ca0494-3ae5-4b17-a41a-f7cdc47cf385" />
 
 ## Hardware Components
 
