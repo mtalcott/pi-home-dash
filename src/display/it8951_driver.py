@@ -147,20 +147,20 @@ class IT8951Driver:
                 self.partial_refresh_count = 0
                 self.logger.info("Full refresh completed with GLD16 mode, reset partial refresh count to 0")
             else:
-                # Partial refresh using GLR16 mode for optimized partial updates
+                # Partial refresh using DU mode for optimized partial updates
                 if region:
                     # Partial refresh with specific region
                     x, y, w, h = region
                     cropped_image = processed_image.crop((x, y, x + w, y + h))
                     self.display.frame_buf.paste(cropped_image, (x, y))
-                    self.display.draw_partial(constants.DisplayModes.GLR16, (x, y, x + w, y + h))
+                    self.display.draw_partial(constants.DisplayModes.DU, (x, y, x + w, y + h))
                 else:
                     # Full area partial refresh
                     self.display.frame_buf.paste(processed_image, (0, 0))
-                    self.display.draw_partial(constants.DisplayModes.GLR16)
+                    self.display.draw_partial(constants.DisplayModes.DU)
                 
                 self.partial_refresh_count += 1
-                self.logger.debug(f"Partial refresh completed with GLR16 mode, count now: {self.partial_refresh_count}")
+                self.logger.debug(f"Partial refresh completed with DU mode, count now: {self.partial_refresh_count}")
             
             duration = time.time() - start_time
             self.last_update_time = time.time()
@@ -582,7 +582,7 @@ class IT8951Driver:
         
         Args:
             image: PIL Image to display
-            display_mode: IT8951 display mode (defaults to GLR16 for optimized partial)
+            display_mode: IT8951 display mode (defaults to DU for optimized partial)
             
         Returns:
             bool: True if successful
@@ -593,7 +593,7 @@ class IT8951Driver:
         
         try:
             processed_image = self._process_image(image)
-            mode = getattr(constants.DisplayModes, display_mode or 'GLR16')
+            mode = getattr(constants.DisplayModes, display_mode or 'DU')
             
             # Hardware is initialized, so display must not be None
             assert self.display is not None, "Display should not be None when hardware is initialized"
